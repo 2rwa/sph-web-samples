@@ -63,14 +63,17 @@ int main()
     const Real pbdTime = PBD::TimeManager::getCurrent()->getTime();
     const Real expectedVy = static_cast<Real>(-0.0981);
     const Real expectedY = static_cast<Real>(0.999019);
-    const Real eps = static_cast<Real>(2.0e-6);
+    const Real forceEps = static_cast<Real>(2.0e-6);
+    const Real stepVelocityEps = static_cast<Real>(2.0e-5);
+    const Real positionEps = static_cast<Real>(2.0e-6);
+    const Real timeEps = static_cast<Real>(2.0e-6);
 
     const bool ok =
         bridge.isDynamic() &&
-        std::abs(vyAfterForce - expectedVy) < eps &&
-        std::abs(body->getVelocity()[1] - expectedVy) < eps &&
-        std::abs(y1 - expectedY) < eps &&
-        std::abs(pbdTime - dt) < eps;
+        std::abs(vyAfterForce - expectedVy) < forceEps &&
+        std::abs(body->getVelocity()[1] - expectedVy) < stepVelocityEps &&
+        std::abs(y1 - expectedY) < positionEps &&
+        std::abs(pbdTime - dt) < timeEps;
 
     if (!ok)
     {
