@@ -182,6 +182,7 @@ add_executable(splishsplash_pbd_motor_smoke EXCLUDE_FROM_ALL
 )
 add_dependencies(splishsplash_pbd_motor_smoke Ext_PBD)
 target_link_libraries(splishsplash_pbd_motor_smoke PRIVATE
+    SPlisHSPlasH
     ${PBD_LIBRARIES}
     PBD_includes
 )
