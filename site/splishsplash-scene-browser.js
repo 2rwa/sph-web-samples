@@ -1,7 +1,8 @@
 import { loadSPlisHSPlasHScene } from "./splishsplash-scene-adapter.js";
 import {
   createSPlisHSPlasHBrowserModule,
-  buildSceneFromIR,
+  prepareBender2019Maps,
+  buildSceneFromIRWithPreparedBender,
 } from "./splishsplash-scene-runtime.js";
 
 const SCENES = {
@@ -136,7 +137,8 @@ async function loadScene(name, updateSelect = true) {
   statusEl.textContent = `Loading ${name}…`;
 
   const ir = await loadSPlisHSPlasHScene(sceneUrl(name));
-  const report = buildSceneFromIR(Module, ir);
+  await prepareBender2019Maps(Module, ir);
+  const report = buildSceneFromIRWithPreparedBender(Module, ir);
 
   if (updateSelect) sceneEl.value = name;
   methodEl.textContent = report.simulationMethod;
@@ -226,7 +228,8 @@ async function boot() {
           ok:
             report.simulationMethod === expected.method &&
             report.particles === expected.particles &&
-            report.boundaryParticles === expected.boundary &&
+            report.boundaryModels === 1 &&
+            report.effectiveBoundaryMethod === "Bender2019" &&
             Module._sph_step_count() === 1 &&
             Module._sph_all_finite() &&
             Number.isFinite(Module._sph_center_y()) &&

@@ -11,7 +11,12 @@ assert.match(page, /DoubleDamBreak\.json/);
 assert.match(page, /CompressibleSPH_ICSPH\.json/);
 assert.match(page, /CompressibleSPH_PF\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
-assert.match(app, /buildSceneFromIR/);
+assert.match(app, /prepareBender2019Maps/);
+assert.match(app, /buildSceneFromIRWithPreparedBender/);
 assert.match(app, /for \(const \[name, expected\] of Object\.entries\(SCENES\)\)/);
 
 console.log("SPlisHSPlasH scene browser contract ok");
+
+const runtime = readFileSync("site/splishsplash-scene-runtime.js", "utf8");
+assert.match(runtime, /sph_scene_add_unit_box_bender_file/);
+assert.match(runtime, /Bender2019 UnitBox volume map loaded from precomputed Discregrid \.cdm/);
