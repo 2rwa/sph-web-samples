@@ -20,6 +20,21 @@ Small browser experiments for SPH implementations.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.
 
+## Upstream examples3d ports
+
+The six examples registered by Salva's `examples3d/all_examples3.rs` are exposed as browser pages:
+
+- Basic
+- Custom forces
+- Elasticity
+- Faucet
+- Height field
+- Surface tension
+
+They run Salva 3D in Rust/WASM and use plain Canvas 2D for perspective projection and depth-sorted particle rendering. Rapier 3D coupling is retained where the upstream example uses it.
+
+See [OFFICIAL_EXAMPLES3D_PORTS.md](./OFFICIAL_EXAMPLES3D_PORTS.md).
+
 ## Rapier × Salva two-way coupling variants
 
 - Upstream Basic coupling — box / ball / capsule at density 0.8.
