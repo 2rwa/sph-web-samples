@@ -43,6 +43,9 @@ int sph_scene_set_peer2016_viscosity(
     float maxErrorV,
     unsigned int maxIterationsOmega,
     float maxErrorOmega);
+int sph_scene_set_bender2017_viscosity(float viscosity, unsigned int maxIterations, float maxError);
+int sph_scene_set_takahashi2015_viscosity(float viscosity, unsigned int maxIterations, float maxError);
+int sph_scene_set_weiler2018_viscosity(float viscosity, float boundaryViscosity, unsigned int maxIterations, float maxError);
 int sph_scene_add_fluid_block(
     float sx, float sy, float sz,
     float ex, float ey, float ez,
@@ -947,6 +950,148 @@ int main()
                   << " minY=" << minY
                   << " time=" << time << "\n";
 
+        sph_destroy();
+    }
+
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 120;
+        sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
+        sph_scene_set_timing(0, 0.5f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 2u);
+        sph_scene_set_bender2017_viscosity(0.6f, 200u, 0.05f);
+        sph_scene_add_fluid_block(
+            -0.1f, 0.01f, -0.4f, 0.1f, 6.0f, 0.4f,
+             0.0f, 0.1f, 0.0f, 0.75f, 1.0f, 0.75f,
+             0.0f, 0.0f, 0.0f, 0);
+        const int boxes = sph_scene_add_unit_box_bender_file(
+            0.0f, -0.25f, 0.0f, 3.0f, 0.5f, 3.0f,
+            "unitbox-3x0p5x3-r20-i0-t0.cdm");
+        const int count = sph_scene_commit();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+        const bool ok =
+            boxes == 1 && count == 6240 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 && method == 4 && iterations >= 2 &&
+            sph_all_finite() && std::isfinite(minY) && time > 0.0f;
+        if (!ok) {
+            std::cerr << "SPLISHSPLASH_BUCKLING_BENDER2017_WASM_FAIL"
+                      << " particles=" << count
+                      << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy(); return 121;
+        }
+        std::cout << "SPLISHSPLASH_BUCKLING_BENDER2017_WASM_OK"
+                  << " particles=" << count
+                  << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 130;
+        sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 5u);
+        sph_scene_set_takahashi2015_viscosity(20.0f, 200u, 0.05f);
+        sph_scene_add_fluid_block(
+            -0.1f, 0.01f, -0.4f, 0.1f, 6.0f, 0.4f,
+             0.0f, 0.1f, 0.0f, 0.75f, 1.0f, 0.75f,
+             0.0f, 0.0f, 0.0f, 0);
+        const int boxes = sph_scene_add_unit_box_bender_file(
+            0.0f, -0.25f, 0.0f, 3.0f, 0.5f, 3.0f,
+            "unitbox-3x0p5x3-r20-i0-t0.cdm");
+        const int count = sph_scene_commit();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+        const bool ok =
+            boxes == 1 && count == 6240 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 && method == 4 && iterations >= 2 &&
+            sph_all_finite() && std::isfinite(minY) && time > 0.0f;
+        if (!ok) {
+            std::cerr << "SPLISHSPLASH_BUCKLING_TAKAHASHI2015_WASM_FAIL"
+                      << " particles=" << count
+                      << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy(); return 131;
+        }
+        std::cout << "SPLISHSPLASH_BUCKLING_TAKAHASHI2015_WASM_OK"
+                  << " particles=" << count
+                  << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 140;
+        sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 6u);
+        sph_scene_set_weiler2018_viscosity(5.0f, 5.0f, 200u, 0.05f);
+        sph_scene_add_fluid_block(
+            -0.1f, 0.01f, -0.4f, 0.1f, 6.0f, 0.4f,
+             0.0f, 0.1f, 0.0f, 0.75f, 1.0f, 0.75f,
+             0.0f, 0.0f, 0.0f, 0);
+        const int boxes = sph_scene_add_unit_box_bender_file(
+            0.0f, -0.25f, 0.0f, 3.0f, 0.5f, 3.0f,
+            "unitbox-3x0p5x3-r20-i0-t0.cdm");
+        const int count = sph_scene_commit();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+        const bool ok =
+            boxes == 1 && count == 6240 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 && method == 4 && iterations >= 2 &&
+            sph_all_finite() && std::isfinite(minY) && time > 0.0f;
+        if (!ok) {
+            std::cerr << "SPLISHSPLASH_BUCKLING_WEILER2018_WASM_FAIL"
+                      << " particles=" << count
+                      << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy(); return 141;
+        }
+        std::cout << "SPLISHSPLASH_BUCKLING_WEILER2018_WASM_OK"
+                  << " particles=" << count
+                  << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
         sph_destroy();
     }
 

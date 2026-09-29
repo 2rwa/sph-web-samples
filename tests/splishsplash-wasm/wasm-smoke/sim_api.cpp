@@ -11,6 +11,9 @@
 #include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Takahashi2015.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Weiler2018.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
@@ -112,6 +115,16 @@ unsigned int g_builder_peer2016_max_iterations_v = 50u;
 Real g_builder_peer2016_max_error_v = static_cast<Real>(0.01);
 unsigned int g_builder_peer2016_max_iterations_omega = 50u;
 Real g_builder_peer2016_max_error_omega = static_cast<Real>(0.01);
+Real g_builder_bender2017_viscosity = static_cast<Real>(0.01);
+unsigned int g_builder_bender2017_max_iterations = 50u;
+Real g_builder_bender2017_max_error = static_cast<Real>(0.01);
+Real g_builder_takahashi2015_viscosity = static_cast<Real>(0.01);
+unsigned int g_builder_takahashi2015_max_iterations = 50u;
+Real g_builder_takahashi2015_max_error = static_cast<Real>(0.01);
+Real g_builder_weiler2018_viscosity = static_cast<Real>(0.01);
+Real g_builder_weiler2018_boundary_viscosity = static_cast<Real>(0.0);
+unsigned int g_builder_weiler2018_max_iterations = 50u;
+Real g_builder_weiler2018_max_error = static_cast<Real>(0.01);
 bool g_builder_active = false;
 
 void reset_builder()
@@ -157,6 +170,16 @@ void reset_builder()
     g_builder_peer2016_max_error_v = static_cast<Real>(0.01);
     g_builder_peer2016_max_iterations_omega = 50u;
     g_builder_peer2016_max_error_omega = static_cast<Real>(0.01);
+    g_builder_bender2017_viscosity = static_cast<Real>(0.01);
+    g_builder_bender2017_max_iterations = 50u;
+    g_builder_bender2017_max_error = static_cast<Real>(0.01);
+    g_builder_takahashi2015_viscosity = static_cast<Real>(0.01);
+    g_builder_takahashi2015_max_iterations = 50u;
+    g_builder_takahashi2015_max_error = static_cast<Real>(0.01);
+    g_builder_weiler2018_viscosity = static_cast<Real>(0.01);
+    g_builder_weiler2018_boundary_viscosity = static_cast<Real>(0.0);
+    g_builder_weiler2018_max_iterations = 50u;
+    g_builder_weiler2018_max_error = static_cast<Real>(0.01);
     g_builder_active = false;
 }
 
@@ -568,6 +591,51 @@ int commit_generic_scene()
         g_model->getViscosityBase()->setValue(
             Viscosity_Peer2016::MAX_ERROR_OMEGA,
             g_builder_peer2016_max_error_omega);
+    }
+    else if (
+        g_builder_viscosity_method == 2u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Bender2017::VISCOSITY_COEFFICIENT,
+            g_builder_bender2017_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Bender2017::MAX_ITERATIONS,
+            g_builder_bender2017_max_iterations);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Bender2017::MAX_ERROR,
+            g_builder_bender2017_max_error);
+    }
+    else if (
+        g_builder_viscosity_method == 5u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Takahashi2015::VISCOSITY_COEFFICIENT,
+            g_builder_takahashi2015_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Takahashi2015::MAX_ITERATIONS,
+            g_builder_takahashi2015_max_iterations);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Takahashi2015::MAX_ERROR,
+            g_builder_takahashi2015_max_error);
+    }
+    else if (
+        g_builder_viscosity_method == 6u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Weiler2018::VISCOSITY_COEFFICIENT,
+            g_builder_weiler2018_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Weiler2018::VISCOSITY_COEFFICIENT_BOUNDARY,
+            g_builder_weiler2018_boundary_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Weiler2018::MAX_ITERATIONS,
+            g_builder_weiler2018_max_iterations);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Weiler2018::MAX_ERROR,
+            g_builder_weiler2018_max_error);
     }
 
     g_sim->setSimulationMethod(g_builder_simulation_method);
@@ -989,6 +1057,52 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_peer2016_viscosity(
     g_builder_peer2016_max_error_v = static_cast<Real>(maxErrorV);
     g_builder_peer2016_max_iterations_omega = maxIterationsOmega;
     g_builder_peer2016_max_error_omega = static_cast<Real>(maxErrorOmega);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_bender2017_viscosity(
+    const float viscosity,
+    const unsigned int maxIterations,
+    const float maxError)
+{
+    if (!g_builder_active || viscosity < 0.0f || maxIterations < 1u || maxError <= 0.0f)
+        return 0;
+    g_builder_bender2017_viscosity = static_cast<Real>(viscosity);
+    g_builder_bender2017_max_iterations = maxIterations;
+    g_builder_bender2017_max_error = static_cast<Real>(maxError);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_takahashi2015_viscosity(
+    const float viscosity,
+    const unsigned int maxIterations,
+    const float maxError)
+{
+    if (!g_builder_active || viscosity < 0.0f || maxIterations < 1u || maxError <= 0.0f)
+        return 0;
+    g_builder_takahashi2015_viscosity = static_cast<Real>(viscosity);
+    g_builder_takahashi2015_max_iterations = maxIterations;
+    g_builder_takahashi2015_max_error = static_cast<Real>(maxError);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_weiler2018_viscosity(
+    const float viscosity,
+    const float boundaryViscosity,
+    const unsigned int maxIterations,
+    const float maxError)
+{
+    if (
+        !g_builder_active ||
+        viscosity < 0.0f ||
+        boundaryViscosity < 0.0f ||
+        maxIterations < 1u ||
+        maxError <= 0.0f)
+        return 0;
+    g_builder_weiler2018_viscosity = static_cast<Real>(viscosity);
+    g_builder_weiler2018_boundary_viscosity = static_cast<Real>(boundaryViscosity);
+    g_builder_weiler2018_max_iterations = maxIterations;
+    g_builder_weiler2018_max_error = static_cast<Real>(maxError);
     return 1;
 }
 

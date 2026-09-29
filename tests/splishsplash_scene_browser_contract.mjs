@@ -12,6 +12,9 @@ assert.match(page, /CompressibleSPH_ICSPH\.json/);
 assert.match(page, /CompressibleSPH_PF\.json/);
 assert.match(page, /BucklingModel_Peer2015\.json/);
 assert.match(page, /BucklingModel_Peer2016\.json/);
+assert.match(page, /BucklingModel_Bender2017\.json/);
+assert.match(page, /BucklingModel_Takahashi2015\.json/);
+assert.match(page, /BucklingModel_Weiler2018\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
 assert.match(app, /prepareBender2019Maps/);
 assert.match(app, /buildSceneFromIRWithPreparedBender/);
@@ -28,3 +31,7 @@ assert.match(runtime, /sph_scene_set_peer2015_viscosity/);
 assert.match(runtime, /unitbox-3x0p5x3-r20-i0-t0\.cdm/);
 
 assert.match(runtime, /sph_scene_set_peer2016_viscosity/);
+
+assert.match(runtime, /sph_scene_set_bender2017_viscosity/);
+assert.match(runtime, /sph_scene_set_takahashi2015_viscosity/);
+assert.match(runtime, /sph_scene_set_weiler2018_viscosity/);

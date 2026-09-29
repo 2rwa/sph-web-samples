@@ -145,6 +145,34 @@ export function buildSceneFromIR(Module, ir) {
       ),
       "sph_scene_set_peer2016_viscosity",
     );
+  } else if (material.viscosityMethod === 2) {
+    requireCall(
+      Module._sph_scene_set_bender2017_viscosity(
+        material.bender2017Viscosity,
+        material.bender2017MaxIterations,
+        material.bender2017MaxError,
+      ),
+      "sph_scene_set_bender2017_viscosity",
+    );
+  } else if (material.viscosityMethod === 5) {
+    requireCall(
+      Module._sph_scene_set_takahashi2015_viscosity(
+        material.takahashi2015Viscosity,
+        material.takahashi2015MaxIterations,
+        material.takahashi2015MaxError,
+      ),
+      "sph_scene_set_takahashi2015_viscosity",
+    );
+  } else if (material.viscosityMethod === 6) {
+    requireCall(
+      Module._sph_scene_set_weiler2018_viscosity(
+        material.weiler2018Viscosity,
+        material.weiler2018BoundaryViscosity,
+        material.weiler2018MaxIterations,
+        material.weiler2018MaxError,
+      ),
+      "sph_scene_set_weiler2018_viscosity",
+    );
   }
 
   for (const block of ir.fluidBlocks) {

@@ -13,6 +13,9 @@ const SCENES = {
   "CompressibleSPH_PF.json": { method: "PF", particles: 9826, boundary: 23066 },
   "BucklingModel_Peer2015.json": { method: "IISPH", particles: 6240, boundary: 0 },
   "BucklingModel_Peer2016.json": { method: "IISPH", particles: 6240, boundary: 0 },
+  "BucklingModel_Bender2017.json": { method: "DFSPH", particles: 6240, boundary: 0 },
+  "BucklingModel_Takahashi2015.json": { method: "DFSPH", particles: 6240, boundary: 0 },
+  "BucklingModel_Weiler2018.json": { method: "DFSPH", particles: 6240, boundary: 0 },
 };
 
 const canvas = document.querySelector("#view");
