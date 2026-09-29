@@ -96,7 +96,10 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
   const bridgeRequirements = [];
   const coreMethodKnown = SIMULATION_METHODS.has(simulationMethodId);
   const browserMethodValidated =
-    simulationMethod === "WCSPH" || simulationMethod === "DFSPH";
+    simulationMethod === "WCSPH" ||
+    simulationMethod === "DFSPH" ||
+    simulationMethod === "ICSPH" ||
+    simulationMethod === "PF";
 
   if (!coreMethodKnown) {
     bridgeRequirements.push(`Unknown simulationMethod ${simulationMethodId}`);
@@ -123,6 +126,8 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
   const solverParameters =
     simulationMethod === "WCSPH" ? structuredClone(config.WCSPH ?? {}) :
     simulationMethod === "DFSPH" ? structuredClone(config.DFSPH ?? {}) :
+    simulationMethod === "ICSPH" ? structuredClone(config.ICSPH ?? {}) :
+    simulationMethod === "PF" ? structuredClone(config["Projective Fluids"] ?? {}) :
     {};
 
   const uniqueBridgeRequirements = [...new Set(bridgeRequirements)];

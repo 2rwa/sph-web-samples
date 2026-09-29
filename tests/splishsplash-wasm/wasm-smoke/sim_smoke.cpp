@@ -15,6 +15,17 @@ int sph_scene_set_dfsph(
     unsigned int maxIterationsV,
     float maxErrorV,
     int enableDivergenceSolver);
+int sph_scene_set_icsph(
+    unsigned int minIterations,
+    unsigned int maxIterations,
+    float maxError,
+    float lambda,
+    int pressureClamping);
+int sph_scene_set_pf(
+    unsigned int minIterations,
+    unsigned int maxIterations,
+    float maxError,
+    float stiffness);
 int sph_scene_set_material(float density0, unsigned int viscosityMethod);
 int sph_scene_add_fluid_block(
     float sx, float sy, float sz,
@@ -474,6 +485,73 @@ int main()
                   << " minY=" << minY1
                   << " time=" << time << "\n";
 
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.025f, 6, 2))
+            return 70;
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_icsph(2u, 100u, 0.05f, 100000.0f, 0);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_add_fluid_block(-0.4f,-0.4f,-0.4f, 0.4f,0.4f,0.4f, -0.6f,0.6f,0.0f, 1,1,1, 5,0,0, 0);
+        sph_scene_add_fluid_block(-0.4f,-0.4f,-0.4f, 0.4f,0.4f,0.4f,  0.6f,0.6f,0.0f, 1,1,1,-5,0,0, 0);
+        sph_scene_add_unit_box(0,1.5f,0, 3.1f,3.1f,3.1f);
+        const int count = sph_scene_commit();
+        const float x0 = sph_max_x();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float x1 = sph_max_x();
+        const float time = sph_time();
+        const bool ok = count==9826 && sph_boundary_count()==23066 && steps==1 &&
+            method==6 && iterations>=2 && sph_all_finite() && std::isfinite(x1) &&
+            x1 < x0 && time>0.0f;
+        if (!ok) {
+            std::cerr << "SPLISHSPLASH_GENERIC_ICSPH_WASM_FAIL particles=" << count
+                      << " boundary=" << sph_boundary_count() << " steps=" << steps
+                      << " method=" << method << " iterations=" << iterations
+                      << " x0=" << x0 << " x1=" << x1 << " time=" << time << "\n";
+            sph_destroy(); return 71;
+        }
+        std::cout << "SPLISHSPLASH_GENERIC_ICSPH_WASM_OK particles=" << count
+                  << " boundary=" << sph_boundary_count() << " steps=" << steps
+                  << " method=" << method << " iterations=" << iterations
+                  << " x0=" << x0 << " x1=" << x1 << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+    {
+        if (!sph_scene_begin(0.025f, 5, 2))
+            return 80;
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_pf(2u, 100u, 0.05f, 25000.0f);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_add_fluid_block(-0.4f,-0.4f,-0.4f, 0.4f,0.4f,0.4f, -0.6f,0.6f,0.0f, 1,1,1, 5,0,0, 0);
+        sph_scene_add_fluid_block(-0.4f,-0.4f,-0.4f, 0.4f,0.4f,0.4f,  0.6f,0.6f,0.0f, 1,1,1,-5,0,0, 0);
+        sph_scene_add_unit_box(0,1.5f,0, 3.1f,3.1f,3.1f);
+        const int count = sph_scene_commit();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float time = sph_time();
+        const bool ok = count==9826 && sph_boundary_count()==23066 && steps==1 &&
+            method==5 && iterations>=2 && sph_all_finite() && time>0.0f;
+        if (!ok) {
+            std::cerr << "SPLISHSPLASH_GENERIC_PF_WASM_FAIL particles=" << count
+                      << " boundary=" << sph_boundary_count() << " steps=" << steps
+                      << " method=" << method << " iterations=" << iterations
+                      << " time=" << time << "\n";
+            sph_destroy(); return 81;
+        }
+        std::cout << "SPLISHSPLASH_GENERIC_PF_WASM_OK particles=" << count
+                  << " boundary=" << sph_boundary_count() << " steps=" << steps
+                  << " method=" << method << " iterations=" << iterations
+                  << " time=" << time << "\n";
         sph_destroy();
     }
 

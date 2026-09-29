@@ -13,8 +13,8 @@ function requireCall(result, name) {
 
 export function buildSceneFromIR(Module, ir) {
   const simulationMethod = ir.configuration.simulationMethod.name;
-  if (!["WCSPH", "DFSPH"].includes(simulationMethod)) {
-    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH only; got ${simulationMethod}`);
+  if (!["WCSPH", "DFSPH", "ICSPH", "PF"].includes(simulationMethod)) {
+    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH/ICSPH/PF only; got ${simulationMethod}`);
   }
 
   const unsupportedBodies = ir.rigidBodies.filter((body) =>
@@ -76,6 +76,27 @@ export function buildSceneFromIR(Module, ir) {
         ir.solver.parameters.enableDivergenceSolver === false ? 0 : 1,
       ),
       "sph_scene_set_dfsph",
+    );
+  } else if (simulationMethod === "ICSPH") {
+    requireCall(
+      Module._sph_scene_set_icsph(
+        Number(ir.solver.parameters.minIterations ?? 2),
+        Number(ir.solver.parameters.maxIterations ?? 100),
+        Number(ir.solver.parameters.maxError ?? 0.01),
+        Number(ir.solver.parameters.lambda ?? 200000),
+        ir.solver.parameters.pressureClamping === false ? 0 : 1,
+      ),
+      "sph_scene_set_icsph",
+    );
+  } else if (simulationMethod === "PF") {
+    requireCall(
+      Module._sph_scene_set_pf(
+        Number(ir.solver.parameters.minIterations ?? 2),
+        Number(ir.solver.parameters.maxIterations ?? 100),
+        Number(ir.solver.parameters.maxError ?? 1e-10),
+        Number(ir.solver.parameters.stiffness ?? 50000),
+      ),
+      "sph_scene_set_pf",
     );
   }
 

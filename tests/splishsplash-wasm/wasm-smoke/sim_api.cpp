@@ -5,6 +5,8 @@
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
+#include "SPlisHSPlasH/ICSPH/TimeStepICSPH.h"
+#include "SPlisHSPlasH/PF/TimeStepPF.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
@@ -71,6 +73,15 @@ Real g_builder_dfsph_max_error = static_cast<Real>(0.05);
 unsigned int g_builder_dfsph_max_iterations_v = 100u;
 Real g_builder_dfsph_max_error_v = static_cast<Real>(0.1);
 bool g_builder_dfsph_divergence = true;
+unsigned int g_builder_icsph_min_iterations = 2u;
+unsigned int g_builder_icsph_max_iterations = 100u;
+Real g_builder_icsph_max_error = static_cast<Real>(0.05);
+Real g_builder_icsph_lambda = static_cast<Real>(100000.0);
+bool g_builder_icsph_pressure_clamping = false;
+unsigned int g_builder_pf_min_iterations = 2u;
+unsigned int g_builder_pf_max_iterations = 100u;
+Real g_builder_pf_max_error = static_cast<Real>(0.05);
+Real g_builder_pf_stiffness = static_cast<Real>(25000.0);
 bool g_builder_active = false;
 
 void reset_builder()
@@ -95,6 +106,15 @@ void reset_builder()
     g_builder_dfsph_max_iterations_v = 100u;
     g_builder_dfsph_max_error_v = static_cast<Real>(0.1);
     g_builder_dfsph_divergence = true;
+    g_builder_icsph_min_iterations = 2u;
+    g_builder_icsph_max_iterations = 100u;
+    g_builder_icsph_max_error = static_cast<Real>(0.05);
+    g_builder_icsph_lambda = static_cast<Real>(100000.0);
+    g_builder_icsph_pressure_clamping = false;
+    g_builder_pf_min_iterations = 2u;
+    g_builder_pf_max_iterations = 100u;
+    g_builder_pf_max_error = static_cast<Real>(0.05);
+    g_builder_pf_stiffness = static_cast<Real>(25000.0);
     g_builder_active = false;
 }
 
@@ -308,7 +328,9 @@ int commit_generic_scene()
         return -10;
     if (
         g_builder_simulation_method != static_cast<int>(SimulationMethods::WCSPH) &&
-        g_builder_simulation_method != static_cast<int>(SimulationMethods::DFSPH))
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::DFSPH) &&
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::PF) &&
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::ICSPH))
         return -11;
     if (!(g_builder_particle_radius > 0.0))
         return -12;
@@ -370,6 +392,23 @@ int commit_generic_scene()
         dfsph->setValue(TimeStepDFSPH::MAX_ITERATIONS_V, g_builder_dfsph_max_iterations_v);
         dfsph->setValue(TimeStepDFSPH::MAX_ERROR_V, g_builder_dfsph_max_error_v);
         dfsph->setValue(TimeStepDFSPH::USE_DIVERGENCE_SOLVER, g_builder_dfsph_divergence);
+    }
+    else if (g_builder_simulation_method == static_cast<int>(SimulationMethods::ICSPH))
+    {
+        TimeStepICSPH* icsph = static_cast<TimeStepICSPH*>(g_sim->getTimeStep());
+        icsph->setValue(TimeStepICSPH::MIN_ITERATIONS, g_builder_icsph_min_iterations);
+        icsph->setValue(TimeStepICSPH::MAX_ITERATIONS, g_builder_icsph_max_iterations);
+        icsph->setValue(TimeStepICSPH::MAX_ERROR, g_builder_icsph_max_error);
+        icsph->setValue(TimeStepICSPH::LAMBDA, g_builder_icsph_lambda);
+        icsph->setValue(TimeStepICSPH::PRESSURE_CLAMPING, g_builder_icsph_pressure_clamping);
+    }
+    else if (g_builder_simulation_method == static_cast<int>(SimulationMethods::PF))
+    {
+        TimeStepPF* pf = static_cast<TimeStepPF*>(g_sim->getTimeStep());
+        pf->setValue(TimeStepPF::MIN_ITERATIONS, g_builder_pf_min_iterations);
+        pf->setValue(TimeStepPF::MAX_ITERATIONS, g_builder_pf_max_iterations);
+        pf->setValue(TimeStepPF::MAX_ERROR, g_builder_pf_max_error);
+        pf->setValue(TimeStepPF::STIFFNESS, g_builder_pf_stiffness);
     }
 
     g_sim->setSimulationInitialized(1);
@@ -640,6 +679,38 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_dfsph(
     g_builder_dfsph_max_iterations_v = maxIterationsV;
     g_builder_dfsph_max_error_v = static_cast<Real>(maxErrorV);
     g_builder_dfsph_divergence = enableDivergenceSolver != 0;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_icsph(
+    const unsigned int minIterations,
+    const unsigned int maxIterations,
+    const float maxError,
+    const float lambda,
+    const int pressureClamping)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_icsph_min_iterations = minIterations;
+    g_builder_icsph_max_iterations = maxIterations;
+    g_builder_icsph_max_error = static_cast<Real>(maxError);
+    g_builder_icsph_lambda = static_cast<Real>(lambda);
+    g_builder_icsph_pressure_clamping = pressureClamping != 0;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_pf(
+    const unsigned int minIterations,
+    const unsigned int maxIterations,
+    const float maxError,
+    const float stiffness)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_pf_min_iterations = minIterations;
+    g_builder_pf_max_iterations = maxIterations;
+    g_builder_pf_max_error = static_cast<Real>(maxError);
+    g_builder_pf_stiffness = static_cast<Real>(stiffness);
     return 1;
 }
 
