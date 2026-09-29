@@ -7,6 +7,10 @@ use salva2d::object::interaction_groups::{Group, InteractionGroups};
 use salva2d::object::{Boundary, BoundaryHandle, Fluid, FluidHandle};
 use salva2d::solver::{Akinci2013SurfaceTension, ArtificialViscosity, Becker2009Elasticity, IISPHSolver, NonPressureForce, XSPHViscosity};
 use salva2d::LiquidWorld;
+use salva2d::integrations::rapier::{ColliderSampling, FluidsPipeline};
+use rapier2d::dynamics::{RigidBodyBuilder, RigidBodyHandle};
+use rapier2d::geometry::{Collider, ColliderBuilder, InteractionTestMode};
+use rapier2d::pipeline::PhysicsWorld;
 use wasm_bindgen::prelude::*;
 
 const PARTICLE_RADIUS: f32 = 0.03;
@@ -1022,4 +1026,494 @@ fn build_official_surface_tension() -> (LiquidWorld, Vec<FluidHandle>, Vec<Vecto
     world.add_boundary(Boundary::new(boundary_points.clone(), InteractionGroups::default()));
 
     (world, vec![handle], boundary_points, Vector2::new(0.0, -0.981))
+}
+
+
+#[derive(Clone, Copy)]
+enum RapierCoupledVariant {
+    UpstreamBasic,
+    LightFloaters,
+    HeavySinkers,
+    LayersFiltered,
+    MixedBodyRain,
+}
+
+impl RapierCoupledVariant {
+    fn from_mode(mode: &str) -> Self {
+        match mode {
+            "light-floaters" => Self::LightFloaters,
+            "heavy-sinkers" => Self::HeavySinkers,
+            "layers-filtered" => Self::LayersFiltered,
+            "mixed-body-rain" => Self::MixedBodyRain,
+            _ => Self::UpstreamBasic,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::UpstreamBasic => "Upstream Basic",
+            Self::LightFloaters => "Light floaters",
+            Self::HeavySinkers => "Heavy sinkers",
+            Self::LayersFiltered => "Layers filtered",
+            Self::MixedBodyRain => "Mixed body rain",
+        }
+    }
+
+    fn is_layers(self) -> bool {
+        matches!(self, Self::LayersFiltered)
+    }
+}
+
+struct CoupledBodyMeta {
+    handle: RigidBodyHandle,
+    shape: f32,
+    a: f32,
+    b: f32,
+    density: f32,
+    group: f32,
+}
+
+#[wasm_bindgen]
+pub struct RapierCoupledSimulation {
+    world: PhysicsWorld,
+    fluids: FluidsPipeline,
+    fluid_handles: Vec<FluidHandle>,
+    bodies: Vec<CoupledBodyMeta>,
+    variant: RapierCoupledVariant,
+}
+
+#[wasm_bindgen]
+impl RapierCoupledSimulation {
+    #[wasm_bindgen(constructor)]
+    pub fn new(mode: &str) -> Self {
+        let variant = RapierCoupledVariant::from_mode(mode);
+        build_rapier_coupled_simulation(variant)
+    }
+
+    pub fn variant_name(&self) -> String {
+        self.variant.name().to_owned()
+    }
+
+    pub fn particle_count(&self) -> usize {
+        self.fluid_handles
+            .iter()
+            .map(|handle| fluid_particle_count(&self.fluids.liquid_world, *handle))
+            .sum()
+    }
+
+    pub fn fluid_count(&self) -> usize {
+        self.fluid_handles.len()
+    }
+
+    pub fn fluid_positions(&self, index: usize) -> Vec<f32> {
+        let Some(handle) = self.fluid_handles.get(index).copied() else {
+            return Vec::new();
+        };
+        flattened_positions(&self.fluids.liquid_world, handle)
+    }
+
+    pub fn boundary_positions(&self) -> Vec<f32> {
+        let point_count: usize = self
+            .fluids
+            .liquid_world
+            .boundaries()
+            .iter()
+            .map(|(_, boundary)| boundary.positions.len())
+            .sum();
+        let mut out = Vec::with_capacity(point_count * 2);
+        for (_, boundary) in self.fluids.liquid_world.boundaries().iter() {
+            for p in &boundary.positions {
+                out.push(p.x);
+                out.push(p.y);
+            }
+        }
+        out
+    }
+
+    pub fn rigid_body_count(&self) -> usize {
+        self.bodies.len()
+    }
+
+    // Per body: x, y, angle, shape, a, b, density, group-id.
+    pub fn rigid_body_states(&self) -> Vec<f32> {
+        let mut out = Vec::with_capacity(self.bodies.len() * 8);
+        for meta in &self.bodies {
+            let Some(body) = self.world.bodies.get(meta.handle) else {
+                continue;
+            };
+            let t = body.translation();
+            out.extend_from_slice(&[
+                t.x,
+                t.y,
+                body.rotation().angle(),
+                meta.shape,
+                meta.a,
+                meta.b,
+                meta.density,
+                meta.group,
+            ]);
+        }
+        out
+    }
+
+    pub fn step(&mut self, dt: f32) {
+        if !dt.is_finite() || dt <= 0.0 {
+            return;
+        }
+
+        let dt = dt.clamp(1.0 / 1000.0, 1.0 / 60.0);
+        self.world.integration_parameters.dt = dt;
+        self.world.step();
+        self.fluids.step(
+            &self.world.gravity,
+            dt,
+            &self.world.colliders,
+            &mut self.world.bodies,
+        );
+    }
+
+    pub fn view_center_x(&self) -> f32 {
+        0.0
+    }
+
+    pub fn view_center_y(&self) -> f32 {
+        5.3
+    }
+
+    pub fn view_half_width(&self) -> f32 {
+        5.8
+    }
+
+    pub fn view_half_height(&self) -> f32 {
+        6.1
+    }
+}
+
+fn build_rapier_coupled_simulation(variant: RapierCoupledVariant) -> RapierCoupledSimulation {
+    let particle_radius = 0.1;
+    let mut world = PhysicsWorld::new();
+    world.gravity = (Vector2::y() * -9.81).into();
+    world.integration_parameters.dt = 1.0 / 200.0;
+
+    let mut fluids = FluidsPipeline::new(particle_radius, SMOOTHING_FACTOR);
+    let mut fluid_handles = add_coupled_basic_fluids(&mut fluids, variant.is_layers());
+
+    let ground_size = Vector2::new(10.0, 1.0);
+    let nsubdivs = 50usize;
+    let heights: Vec<_> = (0..=nsubdivs)
+        .map(|i| {
+            if i == 0 || i == nsubdivs {
+                20.0
+            } else {
+                (i as f32 * ground_size.x / nsubdivs as f32).cos() * 0.5
+            }
+        })
+        .collect();
+
+    let ground_body = world.bodies.insert(RigidBodyBuilder::fixed().build());
+    let ground_collider = ColliderBuilder::heightfield(heights, ground_size.into()).build();
+    let ground_collider = world
+        .colliders
+        .insert_with_parent(ground_collider, ground_body, &mut world.bodies);
+    let ground_boundary = fluids.liquid_world.add_boundary(Boundary::new(
+        Vec::new(),
+        if variant.is_layers() {
+            InteractionGroups::all()
+        } else {
+            InteractionGroups::default()
+        },
+    ));
+    fluids.coupling.register_coupling(
+        ground_boundary,
+        ground_collider,
+        ColliderSampling::DynamicContactSampling,
+    );
+
+    let mut bodies = Vec::new();
+
+    match variant {
+        RapierCoupledVariant::UpstreamBasic => {
+            add_standard_body_triplet(
+                &mut world,
+                &mut fluids,
+                &mut bodies,
+                0.8,
+                false,
+            );
+        }
+        RapierCoupledVariant::LightFloaters => {
+            add_standard_body_triplet(
+                &mut world,
+                &mut fluids,
+                &mut bodies,
+                0.18,
+                false,
+            );
+        }
+        RapierCoupledVariant::HeavySinkers => {
+            add_standard_body_triplet(
+                &mut world,
+                &mut fluids,
+                &mut bodies,
+                3.0,
+                false,
+            );
+        }
+        RapierCoupledVariant::LayersFiltered => {
+            add_standard_body_triplet(
+                &mut world,
+                &mut fluids,
+                &mut bodies,
+                0.8,
+                true,
+            );
+        }
+        RapierCoupledVariant::MixedBodyRain => {
+            let xs = [-4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0];
+            for (i, x) in xs.into_iter().enumerate() {
+                let density = match i % 3 {
+                    0 => 0.2,
+                    1 => 0.8,
+                    _ => 2.5,
+                };
+                let y = 8.7 + (i % 3) as f32 * 0.8;
+                match i % 3 {
+                    0 => add_coupled_body(
+                        &mut world,
+                        &mut fluids,
+                        &mut bodies,
+                        x,
+                        y,
+                        ColliderBuilder::cuboid(0.32, 0.32).density(density).build(),
+                        0.0,
+                        0.32,
+                        0.32,
+                        density,
+                        InteractionGroups::default(),
+                        0.0,
+                    ),
+                    1 => add_coupled_body(
+                        &mut world,
+                        &mut fluids,
+                        &mut bodies,
+                        x,
+                        y,
+                        ColliderBuilder::ball(0.34).density(density).build(),
+                        1.0,
+                        0.34,
+                        0.0,
+                        density,
+                        InteractionGroups::default(),
+                        0.0,
+                    ),
+                    _ => add_coupled_body(
+                        &mut world,
+                        &mut fluids,
+                        &mut bodies,
+                        x,
+                        y,
+                        ColliderBuilder::capsule_y(0.30, 0.24).density(density).build(),
+                        2.0,
+                        0.30,
+                        0.24,
+                        density,
+                        InteractionGroups::default(),
+                        0.0,
+                    ),
+                }
+            }
+        }
+    }
+
+    RapierCoupledSimulation {
+        world,
+        fluids,
+        fluid_handles: std::mem::take(&mut fluid_handles),
+        bodies,
+        variant,
+    }
+}
+
+fn add_coupled_basic_fluids(
+    fluids: &mut FluidsPipeline,
+    layers: bool,
+) -> Vec<FluidHandle> {
+    let particle_radius = 0.1;
+    let ni = 25usize;
+    let nj = 15usize;
+    let shift2 = nj as f32 * particle_radius * 2.0;
+
+    let mut points1 = Vec::new();
+    let mut points2 = Vec::new();
+    let mut points3 = Vec::new();
+
+    for i in 0..ni / 2 {
+        for j in 0..nj {
+            let x = i as f32 * particle_radius * 2.0 - ni as f32 * particle_radius;
+            let y = (j as f32 + 1.0) * particle_radius * 2.0 + 0.5;
+            points1.push(Vector2::new(x, y));
+            points2.push(Vector2::new(x + ni as f32 * particle_radius, y));
+        }
+    }
+
+    for i in 0..ni {
+        for j in 0..nj * 2 {
+            let x = i as f32 * particle_radius * 2.0 - ni as f32 * particle_radius;
+            let y = (j as f32 + 1.0) * particle_radius * 2.0 + 0.5 + shift2;
+            points3.push(Vector2::new(x, y));
+        }
+    }
+
+    let groups1 = if layers {
+        InteractionGroups::new(Group::GROUP_1, Group::GROUP_1)
+    } else {
+        InteractionGroups::default()
+    };
+    let groups2 = if layers {
+        InteractionGroups::new(Group::GROUP_2, Group::GROUP_2)
+    } else {
+        InteractionGroups::default()
+    };
+
+    let mut handles = Vec::new();
+
+    let mut fluid1 = Fluid::new(points1, particle_radius, 1.0, groups1);
+    let elasticity1: Becker2009Elasticity =
+        Becker2009Elasticity::new(1_000.0, 0.3, true);
+    fluid1.nonpressure_forces.push(Box::new(elasticity1));
+    fluid1
+        .nonpressure_forces
+        .push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(fluids.liquid_world.add_fluid(fluid1));
+
+    let mut fluid2 = Fluid::new(points2, particle_radius, 1.0, groups2);
+    let elasticity2: Becker2009Elasticity =
+        Becker2009Elasticity::new(1_000.0, 0.3, true);
+    fluid2.nonpressure_forces.push(Box::new(elasticity2));
+    fluid2
+        .nonpressure_forces
+        .push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(fluids.liquid_world.add_fluid(fluid2));
+
+    let mut fluid3 = Fluid::new(points3, particle_radius, 1.0, groups2);
+    fluid3
+        .nonpressure_forces
+        .push(Box::new(ArtificialViscosity::new(0.5, 0.0)));
+    handles.push(fluids.liquid_world.add_fluid(fluid3));
+
+    handles
+}
+
+fn add_standard_body_triplet(
+    world: &mut PhysicsWorld,
+    fluids: &mut FluidsPipeline,
+    bodies: &mut Vec<CoupledBodyMeta>,
+    density: f32,
+    layers: bool,
+) {
+    let default = InteractionGroups::default();
+    let group1 = InteractionGroups::new(Group::GROUP_1, Group::GROUP_1);
+    let group2 = InteractionGroups::new(Group::GROUP_2, Group::GROUP_2);
+    let group3 = InteractionGroups::new(Group::GROUP_3, Group::GROUP_3);
+
+    add_coupled_body(
+        world,
+        fluids,
+        bodies,
+        0.0,
+        10.0,
+        ColliderBuilder::cuboid(0.4, 0.4).density(density).build(),
+        0.0,
+        0.4,
+        0.4,
+        density,
+        if layers { group2 } else { default },
+        if layers { 2.0 } else { 0.0 },
+    );
+    add_coupled_body(
+        world,
+        fluids,
+        bodies,
+        -2.0,
+        10.0,
+        ColliderBuilder::ball(0.4).density(density).build(),
+        1.0,
+        0.4,
+        0.0,
+        density,
+        if layers { group1 } else { default },
+        if layers { 1.0 } else { 0.0 },
+    );
+    add_coupled_body(
+        world,
+        fluids,
+        bodies,
+        2.0,
+        10.5,
+        ColliderBuilder::capsule_y(0.4, 0.4).density(density).build(),
+        2.0,
+        0.4,
+        0.4,
+        density,
+        if layers { group3 } else { default },
+        if layers { 3.0 } else { 0.0 },
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn add_coupled_body(
+    world: &mut PhysicsWorld,
+    fluids: &mut FluidsPipeline,
+    bodies: &mut Vec<CoupledBodyMeta>,
+    x: f32,
+    y: f32,
+    mut collider: Collider,
+    shape: f32,
+    a: f32,
+    b: f32,
+    density: f32,
+    interaction_group: InteractionGroups,
+    group_id: f32,
+) {
+    let samples = salva2d::sampling::shape_surface_ray_sample(
+        collider.shape(),
+        0.1,
+    )
+    .expect("supported collider should be sampleable");
+
+    let body = RigidBodyBuilder::dynamic()
+        .translation(Vector2::new(x, y).into())
+        .build();
+    let body_handle = world.bodies.insert(body);
+
+    let membership: u32 = interaction_group.memberships.into();
+    let filter: u32 = interaction_group.filter.into();
+    collider.set_collision_groups(rapier2d::geometry::InteractionGroups::new(
+        rapier2d::geometry::Group::from(membership),
+        rapier2d::geometry::Group::from(filter),
+        InteractionTestMode::And,
+    ));
+
+    let collider_handle = world
+        .colliders
+        .insert_with_parent(collider, body_handle, &mut world.bodies);
+
+    let boundary_handle = fluids.liquid_world.add_boundary(Boundary::new(
+        Vec::new(),
+        interaction_group,
+    ));
+    fluids.coupling.register_coupling(
+        boundary_handle,
+        collider_handle,
+        ColliderSampling::StaticSampling(samples),
+    );
+
+    bodies.push(CoupledBodyMeta {
+        handle: body_handle,
+        shape,
+        a,
+        b,
+        density,
+        group: group_id,
+    });
 }
