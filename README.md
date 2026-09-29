@@ -49,6 +49,11 @@ Small browser experiments for SPH implementations.
   - Fluid particles splat into a 64³ fixed-point atomic density grid and `r32float` texture.
   - The terrain is evaluated procedurally from the upstream `sin(x)+cos(z)` height formula and raised border.
   - Fluid and terrain are raymarched independently and the nearest hit is shaded.
+- [Basic density raymarch](./site/samples/salva-3d-webgpu-basic/)
+  - Reuses the same 3,375-particle Basic simulation used by the Canvas and WebGL2 comparison pages.
+  - Fluid uses a 64³ fixed-point atomic density grid and `r32float` texture.
+  - The Rapier floor and four walls are rendered as five exact analytic ray-box intersections.
+  - This is the simplest 3,375-particle WebGPU raymarch baseline.
 
 ## WebGL2 examples3d ports
 
