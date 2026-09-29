@@ -1,13 +1,16 @@
 const canvas = document.querySelector("#view");
 const ctx = canvas.getContext("2d");
+const modeEl = document.querySelector("#mode");
 const massEl = document.querySelector("#mass");
 const fluidVyEl = document.querySelector("#fluid-vy");
 const pauseEl = document.querySelector("#pause");
 const resetEl = document.querySelector("#reset");
 const statusEl = document.querySelector("#status");
+const modeNoteEl = document.querySelector("#mode-note");
 const particlesEl = document.querySelector("#particles");
 const stepsEl = document.querySelector("#steps");
 const simTimeEl = document.querySelector("#sim-time");
+const gravityYEl = document.querySelector("#gravity-y");
 const plateYEl = document.querySelector("#plate-y");
 const plateDyEl = document.querySelector("#plate-dy");
 const plateSpeedEl = document.querySelector("#plate-speed");
@@ -18,12 +21,39 @@ let Module;
 let running = true;
 let rebuilding = false;
 let plateY0 = -0.25;
+let currentGravityY = 0;
 let yaw = 0.55;
 let pitch = -0.30;
 let zoom = 430;
 let dragging = false;
 let lastX = 0;
 let lastY = 0;
+
+const PRESETS = {
+  impact: {
+    mass: "250",
+    fluidVy: "-0.5",
+    gravityY: 0,
+    note: "Direct impact isolates the coupling path with zero gravity: 250 kg plate and fluid initial velocity −0.5 m/s.",
+  },
+  gravity: {
+    mass: "1000",
+    fluidVy: "0",
+    gravityY: -9.81,
+    note: "Gravity drop applies −9.81 m/s² to the SPH fluid while the PBD plate has zero gravitational acceleration, modelling a supported plate so the measured motion comes from fluid impact.",
+  },
+};
+
+function activePreset() {
+  return PRESETS[modeEl.value] ?? PRESETS.impact;
+}
+
+function applyPreset() {
+  const preset = activePreset();
+  massEl.value = preset.mass;
+  fluidVyEl.value = preset.fluidVy;
+  modeNoteEl.textContent = preset.note;
+}
 
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -102,6 +132,7 @@ function metrics(ms=0) {
   particlesEl.textContent=String(Module._sph_particle_count());
   stepsEl.textContent=String(Module._sph_step_count());
   simTimeEl.textContent=Module._sph_time().toFixed(4);
+  gravityYEl.textContent=currentGravityY.toFixed(2)+" m/s²";
   plateYEl.textContent=y.toFixed(5);
   plateDyEl.textContent=(y-plateY0).toFixed(5);
   plateSpeedEl.textContent=Module._sph_pbd_body_speed().toFixed(5);
@@ -125,9 +156,12 @@ async function rebuild() {
   const mapFile=await ensureMap();
   const mass=Number(massEl.value);
   const fluidVy=Number(fluidVyEl.value);
+  const preset=activePreset();
+  currentGravityY=preset.gravityY;
+  modeNoteEl.textContent=preset.note;
 
   if(!Module._sph_scene_begin(0.025,4,2)) throw new Error("sph_scene_begin failed");
-  Module._sph_scene_set_gravity(0,0,0);
+  Module._sph_scene_set_gravity(0,currentGravityY,0);
   Module._sph_scene_set_timing(1,1,0.0025,0.0005);
   Module._sph_scene_set_dfsph(2,100,0.01,100,0.1,1);
   Module._sph_scene_set_material(1000,1);
@@ -153,7 +187,7 @@ async function rebuild() {
   plateY0=Module._sph_pbd_body_position_y();
   running=true;
   pauseEl.textContent="Pause";
-  statusEl.textContent=`Running / mass=${mass} kg / fluidVy=${fluidVy} m/s`;
+  statusEl.textContent=`Running / ${modeEl.value} / mass=${mass} kg / fluidVy=${fluidVy} m/s / fluidGravityY=${currentGravityY}`;
   rebuilding=false;
   metrics();
   draw();
@@ -180,6 +214,10 @@ pauseEl.addEventListener("click",()=>{
   pauseEl.textContent=running?"Pause":"Resume";
 });
 resetEl.addEventListener("click",()=>rebuild().catch(fail));
+modeEl.addEventListener("change",()=>{
+  applyPreset();
+  rebuild().catch(fail);
+});
 massEl.addEventListener("change",()=>rebuild().catch(fail));
 fluidVyEl.addEventListener("change",()=>rebuild().catch(fail));
 canvas.addEventListener("pointerdown",(e)=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
@@ -195,33 +233,60 @@ function fail(error) {
   statusEl.textContent="Failed: "+(error?.message??error);
 }
 
+function sampleCoupling(steps) {
+  const y0=Module._sph_pbd_body_position_y();
+  const stepResult=Module._sph_step_dynamic_pbd(steps);
+  const y1=Module._sph_pbd_body_position_y();
+  return {
+    steps:stepResult,
+    displacement:y1-y0,
+    speed:Module._sph_pbd_body_speed(),
+    force:Module._sph_pbd_max_boundary_force(),
+    finite:Boolean(Module._sph_all_finite()),
+    particles:Module._sph_particle_count(),
+  };
+}
+
 async function boot() {
   try {
     Module=await globalThis.createSPlisHSPlasHPBD({
       locateFile(path){return new URL(`./vendor/splishsplash-pbd/${path}`,import.meta.url).href;}
     });
+    applyPreset();
     await rebuild();
 
     if(new URLSearchParams(location.search).get("ci")==="1") {
       running=false;
-      const y0=Module._sph_pbd_body_position_y();
-      const steps=Module._sph_step_dynamic_pbd(120);
-      const y1=Module._sph_pbd_body_position_y();
-      const displacement=y1-y0;
-      const speed=Module._sph_pbd_body_speed();
-      const force=Module._sph_pbd_max_boundary_force();
-      const ok=
-        steps===120 &&
-        Module._sph_particle_count()===1331 &&
-        Module._sph_all_finite() &&
-        displacement < -0.002 &&
-        displacement > -0.25 &&
-        speed>0 &&
-        speed<2 &&
-        force>1000;
+      const impact=sampleCoupling(120);
+      const impactOk=
+        impact.steps===120 &&
+        impact.particles===1331 &&
+        impact.finite &&
+        impact.displacement < -0.002 &&
+        impact.displacement > -0.25 &&
+        impact.speed>0 &&
+        impact.speed<2 &&
+        impact.force>1000;
+
+      modeEl.value="gravity";
+      applyPreset();
+      await rebuild();
+      running=false;
+      const gravity=sampleCoupling(160);
+      const gravityOk=
+        gravity.steps===160 &&
+        gravity.particles===1331 &&
+        gravity.finite &&
+        gravity.displacement < -0.002 &&
+        gravity.displacement > -0.35 &&
+        gravity.speed>0 &&
+        gravity.speed<3 &&
+        gravity.force>1000;
+
+      const ok=impactOk&&gravityOk;
       statusEl.textContent=ok
-        ? `CI SPlisHSPlasH PBD browser ok / dy=${displacement.toFixed(5)} / speed=${speed.toFixed(5)} / maxForce=${force.toFixed(1)}`
-        : `Failed: PBD browser dy=${displacement} speed=${speed} force=${force} steps=${steps}`;
+        ? `CI SPlisHSPlasH PBD browser ok / impactDy=${impact.displacement.toFixed(5)} / gravityDy=${gravity.displacement.toFixed(5)} / gravityForce=${gravity.force.toFixed(1)}`
+        : `Failed: PBD browser impact=${JSON.stringify(impact)} gravity=${JSON.stringify(gravity)}`;
       metrics();
       draw();
       return;

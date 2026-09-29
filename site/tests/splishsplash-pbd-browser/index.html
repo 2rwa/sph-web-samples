@@ -26,19 +26,28 @@
   <h1>SPlisHSPlasH PBD two-way coupling</h1>
   <p>
     Native DFSPH fluid → Bender2019 volume-map boundary force → PositionBasedDynamics rigid body,
-    all compiled to WebAssembly. The default parameters come from the CI sweep:
-    250 kg plate, fluid initial velocity −0.5 m/s.
+    all compiled to WebAssembly. Two CI-tuned presets are available: direct impact and
+    gravity-driven fluid impact.
   </p>
-  <p class="note">This milestone intentionally uses zero gravity so the force-feedback path is isolated. Reset rebuilds the scene with the selected mass and fluid speed.</p>
+  <p class="note" id="mode-note">
+    Direct impact isolates the coupling path with zero gravity: 250 kg plate and fluid initial velocity −0.5 m/s.
+  </p>
 
   <div class="bar">
+    <label>Scenario
+      <select id="mode">
+        <option value="impact" selected>Direct impact</option>
+        <option value="gravity">Gravity drop (supported plate)</option>
+      </select>
+    </label>
     <label>Plate mass
       <select id="mass">
-        <option>50</option><option>100</option><option selected>250</option><option>500</option><option>1000</option><option>2000</option>
+        <option>50</option><option>100</option><option selected>250</option><option>500</option><option>1000</option><option>2000</option><option>5000</option>
       </select>
     </label>
     <label>Fluid Y velocity
       <select id="fluid-vy">
+        <option value="0">0.00 m/s</option>
         <option value="-0.25">−0.25 m/s</option>
         <option value="-0.5" selected>−0.50 m/s</option>
         <option value="-1">−1.00 m/s</option>
@@ -53,6 +62,7 @@
     <div class="card"><div class="label">Fluid particles</div><div id="particles">-</div></div>
     <div class="card"><div class="label">Steps</div><div id="steps">-</div></div>
     <div class="card"><div class="label">Simulation time</div><div id="sim-time">-</div></div>
+    <div class="card"><div class="label">Fluid gravity Y</div><div id="gravity-y">-</div></div>
     <div class="card"><div class="label">Plate Y</div><div id="plate-y">-</div></div>
     <div class="card"><div class="label">Displacement Y</div><div id="plate-dy">-</div></div>
     <div class="card"><div class="label">Plate speed</div><div id="plate-speed">-</div></div>
