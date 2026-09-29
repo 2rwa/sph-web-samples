@@ -910,12 +910,14 @@ fn build_official_basic(layers: bool) -> (LiquidWorld, Vec<FluidHandle>, Vec<Vec
     };
 
     let mut fluid1 = Fluid::new(points1, particle_radius, 1.0, groups1);
-    fluid1.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(1_000.0, 0.3, true)));
+    let elasticity1: Becker2009Elasticity = Becker2009Elasticity::new(1_000.0, 0.3, true);
+    fluid1.nonpressure_forces.push(Box::new(elasticity1));
     fluid1.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
     handles.push(world.add_fluid(fluid1));
 
     let mut fluid2 = Fluid::new(points2, particle_radius, 1.0, groups2);
-    fluid2.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(1_000.0, 0.3, true)));
+    let elasticity2: Becker2009Elasticity = Becker2009Elasticity::new(1_000.0, 0.3, true);
+    fluid2.nonpressure_forces.push(Box::new(elasticity2));
     fluid2.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
     handles.push(world.add_fluid(fluid2));
 
@@ -986,14 +988,16 @@ fn build_official_elasticity() -> (LiquidWorld, Vec<FluidHandle>, Vec<Vector2<f3
     let mut points1 = cube_fluid_points(nparticlesx, nparticlesy, particle_radius);
     translate_points(&mut points1, 0.0, ground_thickness + particle_radius * nparticlesy as f32 + height);
     let mut fluid1 = Fluid::new(points1, particle_radius, 1000.0, InteractionGroups::default());
-    fluid1.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(500_000.0, 0.3, true)));
+    let elasticity1: Becker2009Elasticity = Becker2009Elasticity::new(500_000.0, 0.3, true);
+    fluid1.nonpressure_forces.push(Box::new(elasticity1));
     fluid1.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
     handles.push(world.add_fluid(fluid1));
 
     let mut points2 = cube_fluid_points(nparticlesx, nparticlesy, particle_radius);
     translate_points(&mut points2, 0.0, ground_thickness + particle_radius * nparticlesy as f32 * 4.0 + height);
     let mut fluid2 = Fluid::new(points2, particle_radius, 1000.0, InteractionGroups::default());
-    fluid2.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(100_000.0, 0.3, true)));
+    let elasticity2: Becker2009Elasticity = Becker2009Elasticity::new(100_000.0, 0.3, true);
+    fluid2.nonpressure_forces.push(Box::new(elasticity2));
     fluid2.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
     handles.push(world.add_fluid(fluid2));
 
