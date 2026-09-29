@@ -25,6 +25,8 @@ const webgpuFaucet = readFileSync("site/samples/salva-3d-webgpu-faucet/index.htm
 const webgpuFaucetApp = readFileSync("site/3d-webgpu-faucet.js", "utf8");
 const webgpuElasticity = readFileSync("site/samples/salva-3d-webgpu-elasticity/index.html", "utf8");
 const webgpuElasticityApp = readFileSync("site/3d-webgpu-elasticity.js", "utf8");
+const webgpuHeightfield = readFileSync("site/samples/salva-3d-webgpu-heightfield/index.html", "utf8");
+const webgpuHeightfieldApp = readFileSync("site/3d-webgpu-heightfield.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
 const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
 const official3dApp = readFileSync("site/official-examples3d.js", "utf8");
@@ -83,6 +85,7 @@ assert.match(top, /href="\.\/samples\/salva-official-3d-surface-tension\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-surface-tension\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-faucet\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-elasticity\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgpu-heightfield\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -237,6 +240,30 @@ assert.match(webgpuElasticityApp, /sph_web_samples\.js\?v=1\.70/);
 assert.match(webgpuElasticityApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.70", import\.meta\.url\)/);
 assert.doesNotMatch(webgpuElasticityApp, /t\s*\+=\s*density/);
 
+assert.match(webgpuHeightfield, /data-webgpu-raymarch="heightfield"/);
+assert.match(webgpuHeightfield, /64³ fluid density grid/);
+assert.match(webgpuHeightfield, /procedural heightfield/);
+assert.match(webgpuHeightfield, /3d-webgpu-heightfield\.js\?v=1\.80/);
+assert.match(webgpuHeightfieldApp, /new OfficialExample3dSimulation\("heightfield"\)/);
+assert.match(webgpuHeightfieldApp, /array<atomic<u32>>/);
+assert.match(webgpuHeightfieldApp, /atomicAdd/);
+assert.match(webgpuHeightfieldApp, /texture_storage_3d<r32float, write>/);
+assert.match(webgpuHeightfieldApp, /texture_3d<f32>/);
+assert.match(webgpuHeightfieldApp, /terrainHeight/);
+assert.match(webgpuHeightfieldApp, /marchTerrain/);
+assert.match(webgpuHeightfieldApp, /refineTerrainHit/);
+assert.match(webgpuHeightfieldApp, /sin\(localX\)/);
+assert.match(webgpuHeightfieldApp, /cos\(localZ\)/);
+assert.match(webgpuHeightfieldApp, /marchDensity/);
+assert.match(webgpuHeightfieldApp, /refineDensityHit/);
+assert.match(webgpuHeightfieldApp, /GPUTextureUsage\.STORAGE_BINDING/);
+assert.match(webgpuHeightfieldApp, /getCompilationInfo/);
+assert.match(webgpuHeightfieldApp, /pushErrorScope\("validation"\)/);
+assert.match(webgpuHeightfieldApp, /queue\.onSubmittedWorkDone\(\)/);
+assert.match(webgpuHeightfieldApp, /sph_web_samples\.js\?v=1\.80/);
+assert.match(webgpuHeightfieldApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.80", import\.meta\.url\)/);
+assert.doesNotMatch(webgpuHeightfieldApp, /t\s*\+=\s*density/);
+
 for (const [mode, html] of Object.entries(officialPages)) {
   assert.match(html, new RegExp(`data-example="${mode}"`));
   assert.match(html, /<canvas\s+id="view"/);
@@ -294,4 +321,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + twenty-nine samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + thirty samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
