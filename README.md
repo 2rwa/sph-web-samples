@@ -13,6 +13,11 @@ Small browser experiments for SPH implementations.
   - 512 particles (8 × 8 × 8) simulated with Salva 3D.
   - XYZ positions are perspective-projected and depth-sorted in plain Canvas 2D.
   - Drag to orbit; wheel to zoom.
+- [Salva 3D Basic + WebAssembly + WebGL2 points](./site/samples/salva-3d-webgl2/)
+  - Reuses the official 3D Basic WASM simulation with 3,375 particles.
+  - WebGL2 performs projection, depth testing, and point-sprite rasterization.
+  - Displays separate physics ms, render ms, and FPS.
+  - Boundary samples use a static VBO; fluid XYZ uses a dynamic VBO.
 - [Salva interactive obstacles](./site/samples/salva-interactive-obstacles/)
   - Selectable 1,000–5,000 particles.
   - Particle-only reset preserves the outer container and all user obstacles.

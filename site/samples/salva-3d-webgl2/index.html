@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Salva 3D WebGL2 — SPH Web Samples</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d10; color: #dce7f2; }
+    main { width: min(96vw, 980px); }
+    h1 { margin: 0 0 .35rem; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    p { margin: .3rem 0 .8rem; color: #91a4b7; }
+    a { color: #9bd4ff; }
+    .controls, .metrics { display: flex; flex-wrap: wrap; gap: .55rem 1rem; align-items: center; margin: .8rem 0; }
+    button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; cursor: pointer; }
+    canvas { width: 100%; aspect-ratio: 4 / 3; display: block; touch-action: none; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
+    .metrics { font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+    .note { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #26313b; font-size: .88rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="../../">← SPH Web Samples</a></p>
+    <h1>Salva 3D Basic → Rust/WASM → WebGL2 points</h1>
+    <p>
+      Same 3,375-particle Salva 3D Basic simulation as the Canvas port.
+      WebGL2 performs perspective projection, depth testing, point rasterization, and round point-sprite shading.
+    </p>
+    <div class="controls">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="reset">Reset</button>
+      <a href="../salva-official-3d-basic/">Canvas 2D version</a>
+      <span>Drag to orbit · wheel to zoom</span>
+    </div>
+    <canvas id="view" width="800" height="600" aria-label="Salva 3D particles rendered with WebGL2"></canvas>
+    <div class="metrics">
+      <span>Particles: <strong id="particles">0</strong></span>
+      <span>Physics ms: <strong id="physics-ms">0.00</strong></span>
+      <span>Render ms: <strong id="render-ms">0.00</strong></span>
+      <span>FPS: <strong id="fps">0.0</strong></span>
+      <span id="gpu-status">WebGL2</span>
+    </div>
+    <p class="note">
+      First WebGL2 pass: one dynamic XYZ VBO for fluid particles and one static VBO for boundary samples.
+      No JavaScript perspective projection or particle depth sort is used.
+    </p>
+  </main>
+  <script type="module" src="../../3d-webgl2.js?v=1.40"></script>
+</body>
+</html>
