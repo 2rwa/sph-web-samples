@@ -25,6 +25,15 @@ Small browser experiments for SPH implementations.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.
 
+## WebGPU raymarch experiments
+
+- [Surface tension density raymarch](./site/samples/salva-3d-webgpu-surface-tension/)
+  - Reuses the 343-particle official Surface tension simulation.
+  - WebGPU compute generates a 48³ `r32float` density texture.
+  - The render pass performs fixed-step iso-surface raymarching with binary hit refinement.
+  - The density field is explicitly treated as non-SDF; no sphere tracing is used.
+  - Kernel radius and iso threshold are interactive.
+
 ## WebGL2 examples3d ports
 
 All six registered examples3d modes now have WebGL2 point-sprite versions:
