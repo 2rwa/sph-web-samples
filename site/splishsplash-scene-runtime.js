@@ -11,6 +11,66 @@ function requireCall(result, name) {
   return result;
 }
 
+
+function queueSurfaceTension(Module, material) {
+  const method = Number(material.surfaceTensionMethod ?? 0);
+  requireCall(
+    Module._sph_scene_set_surface_tension_method(method),
+    "sph_scene_set_surface_tension_method",
+  );
+
+  const ignored = [];
+  if (method !== 5) return ignored;
+
+  const params = material.surfaceTensionParameters ?? {};
+  const realNames = new Set([
+    "surfaceTension",
+    "surfTZRr-ratio",
+    "surfTZRtau",
+    "surfTZRd",
+    "surfTZRPcaMixNrm",
+    "surfTZRPcaMixCur",
+  ]);
+  const intNames = new Set([
+    "surfTZRversion",
+    "surfTZRCsd",
+    "surfTZRsampling",
+    "surfTZRnormal-mode",
+    "surfTZRMCSamples",
+  ]);
+
+  for (const [name, rawValue] of Object.entries(params)) {
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) {
+      ignored.push(name);
+      continue;
+    }
+
+    let result = 0;
+    if (realNames.has(name)) {
+      result = Module.ccall(
+        "sph_scene_set_surface_real",
+        "number",
+        ["string", "number"],
+        [name, value],
+      );
+    } else if (intNames.has(name)) {
+      result = Module.ccall(
+        "sph_scene_set_surface_int",
+        "number",
+        ["string", "number"],
+        [name, Math.trunc(value)],
+      );
+    } else {
+      ignored.push(name);
+      continue;
+    }
+    requireCall(result, `surface parameter ${name}`);
+  }
+
+  return ignored;
+}
+
 export function buildSceneFromIR(Module, ir) {
   const simulationMethod = ir.configuration.simulationMethod.name;
   if (!["WCSPH", "DFSPH", "ICSPH", "PF", "IISPH"].includes(simulationMethod)) {
@@ -175,6 +235,8 @@ export function buildSceneFromIR(Module, ir) {
     );
   }
 
+  const ignoredSurfaceParameters = queueSurfaceTension(Module, material);
+
   for (const block of ir.fluidBlocks) {
     requireCall(
       Module._sph_scene_add_fluid_block(
@@ -228,6 +290,10 @@ export function buildSceneFromIR(Module, ir) {
     effectiveCflMax,
     particles,
     boundaryParticles: Module._sph_boundary_count(),
+    boundaryModels: Module._sph_boundary_model_count(),
+    surfaceTensionMethod: Module._sph_surface_tension_method(),
+    surfaceParameterMissingCount: Module._sph_surface_parameter_missing_count(),
+    ignoredSurfaceParameters,
     substitutions,
   };
 }
@@ -356,6 +422,12 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
       Number(ir.solver.parameters.maxError ?? 1e-10),
       Number(ir.solver.parameters.stiffness ?? 50000),
     ), "sph_scene_set_pf");
+  } else if (simulationMethod === "IISPH") {
+    requireCall(Module._sph_scene_set_iisph(
+      Number(ir.solver.parameters.minIterations ?? 2),
+      Number(ir.solver.parameters.maxIterations ?? 100),
+      Number(ir.solver.parameters.maxError ?? 0.01),
+    ), "sph_scene_set_iisph");
   }
 
   const material = ir.materials[0] ?? { density0:1000, viscosityMethod:1 };
@@ -365,7 +437,42 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
       Module._sph_scene_set_standard_viscosity(material.standardViscosity),
       "sph_scene_set_standard_viscosity",
     );
+  } else if (material.viscosityMethod === 2) {
+    requireCall(Module._sph_scene_set_bender2017_viscosity(
+      material.bender2017Viscosity,
+      material.bender2017MaxIterations,
+      material.bender2017MaxError,
+    ), "sph_scene_set_bender2017_viscosity");
+  } else if (material.viscosityMethod === 3) {
+    requireCall(Module._sph_scene_set_peer2015_viscosity(
+      material.peer2015Viscosity,
+      material.peer2015MaxIterations,
+      material.peer2015MaxError,
+    ), "sph_scene_set_peer2015_viscosity");
+  } else if (material.viscosityMethod === 4) {
+    requireCall(Module._sph_scene_set_peer2016_viscosity(
+      material.peer2016Viscosity,
+      material.peer2016MaxIterationsV,
+      material.peer2016MaxErrorV,
+      material.peer2016MaxIterationsOmega,
+      material.peer2016MaxErrorOmega,
+    ), "sph_scene_set_peer2016_viscosity");
+  } else if (material.viscosityMethod === 5) {
+    requireCall(Module._sph_scene_set_takahashi2015_viscosity(
+      material.takahashi2015Viscosity,
+      material.takahashi2015MaxIterations,
+      material.takahashi2015MaxError,
+    ), "sph_scene_set_takahashi2015_viscosity");
+  } else if (material.viscosityMethod === 6) {
+    requireCall(Module._sph_scene_set_weiler2018_viscosity(
+      material.weiler2018Viscosity,
+      material.weiler2018BoundaryViscosity,
+      material.weiler2018MaxIterations,
+      material.weiler2018MaxError,
+    ), "sph_scene_set_weiler2018_viscosity");
   }
+
+  const ignoredSurfaceParameters = queueSurfaceTension(Module, material);
 
   for (const block of ir.fluidBlocks) {
     requireCall(Module._sph_scene_add_fluid_block(
@@ -404,6 +511,16 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
     particles,
     boundaryParticles: Module._sph_boundary_count(),
     boundaryModels: Module._sph_boundary_model_count(),
-    substitutions: ["Bender2019 UnitBox volume map loaded from precomputed Discregrid .cdm"],
+    surfaceTensionMethod: Module._sph_surface_tension_method(),
+    surfaceParameterMissingCount: Module._sph_surface_parameter_missing_count(),
+    ignoredSurfaceParameters,
+    substitutions: [
+      ...(ir.rigidBodies.length
+        ? ["Bender2019 UnitBox volume map loaded from precomputed Discregrid .cdm"]
+        : []),
+      ...(ignoredSurfaceParameters.length
+        ? [`Ignored source-only surface parameters: ${ignoredSurfaceParameters.join(", ")}`]
+        : []),
+    ],
   };
 }

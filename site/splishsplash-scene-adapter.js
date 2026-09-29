@@ -53,6 +53,10 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
     id: material.id ?? `Material${index}`,
     density0: numberOr(material.density0, 1000),
     viscosityMethod: numberOr(material.viscosityMethod, 0),
+    surfaceTensionMethod: numberOr(material.surfaceTensionMethod, 0),
+    surfaceTensionParameters: structuredClone(
+      material["Zorilla, Ritter, et al. 2020"] ?? {}
+    ),
     standardViscosity: numberOr(material["Standard viscosity"]?.viscosity, 0),
     peer2015Viscosity: numberOr(material["Peer et al. 2015"]?.viscosity, 0.01),
     peer2015MaxIterations: numberOr(material["Peer et al. 2015"]?.viscoMaxIter, 50),

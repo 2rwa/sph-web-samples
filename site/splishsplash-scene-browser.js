@@ -16,6 +16,12 @@ const SCENES = {
   "BucklingModel_Bender2017.json": { method: "DFSPH", particles: 6240, boundary: 0 },
   "BucklingModel_Takahashi2015.json": { method: "DFSPH", particles: 6240, boundary: 0 },
   "BucklingModel_Weiler2018.json": { method: "DFSPH", particles: 6240, boundary: 0 },
+  "SurfaceTension_NoGravCube_ZR2020.json": {
+    method: "IISPH",
+    particles: 12167,
+    boundaryModels: 0,
+    surfaceTensionMethod: 5,
+  },
 };
 
 const canvas = document.querySelector("#view");
@@ -269,8 +275,11 @@ async function boot() {
         const ok =
           report.simulationMethod === expected.method &&
           report.particles === expected.particles &&
-          report.boundaryModels === 1 &&
+          report.boundaryModels === (expected.boundaryModels ?? 1) &&
           report.effectiveBoundaryMethod === "Bender2019" &&
+          (expected.surfaceTensionMethod == null ||
+            report.surfaceTensionMethod === expected.surfaceTensionMethod) &&
+          report.surfaceParameterMissingCount === 0 &&
           Module._sph_step_count() === 1 &&
           Module._sph_all_finite() &&
           Number.isFinite(centerY1) &&
@@ -282,6 +291,9 @@ async function boot() {
           method: report.simulationMethod,
           particles: report.particles,
           boundaryModels: report.boundaryModels,
+          surfaceTensionMethod: report.surfaceTensionMethod,
+          surfaceParameterMissingCount: report.surfaceParameterMissingCount,
+          ignoredSurfaceParameters: report.ignoredSurfaceParameters,
           centerY0,
           centerY1,
           minY,
