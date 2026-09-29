@@ -80,7 +80,7 @@ It should distinguish:
 
 - Phase 1 JavaScript parser / normalized IR: implemented for the first three fixtures.
 - Phase 2 generic C ABI: WCSPH and DFSPH builders implemented.
-- End-to-end targets: `CompressibleSPH_WCSPH.json` and `DamBreakModel.json`.
+- End-to-end targets: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
 - The browser currently substitutes static unrotated Bender2019 UnitBox walls with sampled Akinci2012 UnitBox particles and reports that substitution explicitly.
 - The first bridge also caps the effective CFL max at 0.001 while preserving the source JSON value for diagnostics.
 

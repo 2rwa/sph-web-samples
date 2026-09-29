@@ -57,6 +57,10 @@ Small browser experiments for SPH implementations.
   - The generic ABI now selects real upstream `TimeStepDFSPH` and forwards its min/max iterations, density error limits, divergence iteration/error limits, and divergence-solver toggle.
   - The upstream fluid block becomes 9,261 particles at radius 0.025.
   - The Bender2019 UnitBox is still an explicit sampled-Akinci2012 compatibility bridge for this phase.
+- [SPlisHSPlasH JSON-driven Double DFSPH Dam Break](./site/tests/splishsplash-scene-double-dfsph/)
+  - Reads the unedited upstream `DoubleDamBreak.json`.
+  - Reuses the same generic DFSPH ABI with two fluid blocks.
+  - Expected browser scene: 7,200 fluid particles and 23,066 sampled UnitBox boundary particles.
 
 See [SPLISHSPLASH_WASM_MILESTONE_20260929.md](./SPLISHSPLASH_WASM_MILESTONE_20260929.md) for the frozen WASM milestone and [SCENE_JSON_BROWSER_PLAN.md](./SCENE_JSON_BROWSER_PLAN.md) for the next architecture phase.
 

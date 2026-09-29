@@ -812,6 +812,17 @@ EMSCRIPTEN_KEEPALIVE int sph_scene()
     return g_scene;
 }
 
+EMSCRIPTEN_KEEPALIVE int sph_simulation_method()
+{
+    return g_sim ? g_sim->getSimulationMethod() : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_solver_iterations()
+{
+    return (g_sim && g_sim->getTimeStep())
+        ? static_cast<int>(g_sim->getTimeStep()->getNumIterations())
+        : -1;
+}
 
 EMSCRIPTEN_KEEPALIVE int sph_point_set_count()
 {

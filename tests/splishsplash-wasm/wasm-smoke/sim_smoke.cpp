@@ -38,6 +38,8 @@ float sph_min_y();
 float sph_max_x();
 float sph_time();
 int sph_all_finite();
+int sph_simulation_method();
+int sph_solver_iterations();
 void sph_destroy();
 }
 
@@ -327,12 +329,16 @@ int main()
         }
 
         const int steps = sph_step(2);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
         const float centerY1 = sph_center_y();
         const float minY1 = sph_min_y();
         const float time = sph_time();
 
         const bool ok =
             steps == 2 &&
+            method == 4 &&
+            iterations >= 2 &&
             sph_all_finite() &&
             std::isfinite(centerY1) &&
             std::isfinite(minY1) &&
@@ -346,6 +352,8 @@ int main()
                       << " particles=" << count
                       << " boundary=" << boundaryCount
                       << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
                       << " centerY0=" << centerY0
                       << " centerY1=" << centerY1
                       << " minY0=" << minY0
@@ -359,6 +367,108 @@ int main()
                   << " particles=" << count
                   << " boundary=" << boundaryCount
                   << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
+                  << " centerY0=" << centerY0
+                  << " centerY1=" << centerY1
+                  << " minY=" << minY1
+                  << " time=" << time << "\n";
+
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 60;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.05f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 1u);
+
+        const int block1 = sph_scene_add_fluid_block(
+            -1.5f, 0.0f, -1.5f,
+            -0.8f, 0.75f, -0.8f,
+             0.0f, 0.0f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+        const int block2 = sph_scene_add_fluid_block(
+             0.8f, 0.0f, 0.8f,
+             1.5f, 0.75f, 1.5f,
+             0.0f, 0.0f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+        const int boxes = sph_scene_add_unit_box(
+            0.0f, 1.5f, 0.0f,
+            3.1f, 3.1f, 3.1f);
+
+        const int count = sph_scene_commit();
+        const int boundaryCount = sph_boundary_count();
+        const float centerY0 = sph_center_y();
+        const float minY0 = sph_min_y();
+
+        if (
+            block1 != 1 ||
+            block2 != 2 ||
+            boxes != 1 ||
+            count != 7200 ||
+            boundaryCount != 23066 ||
+            sph_simulation_method() != 4 ||
+            !sph_all_finite())
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_DOUBLE_DFSPH_WASM_FAIL init"
+                      << " blocks=" << block1 << "," << block2
+                      << " boxes=" << boxes
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " method=" << sph_simulation_method()
+                      << " centerY=" << centerY0
+                      << " minY=" << minY0 << "\n";
+            sph_destroy();
+            return 61;
+        }
+
+        const int steps = sph_step(2);
+        const int iterations = sph_solver_iterations();
+        const float centerY1 = sph_center_y();
+        const float minY1 = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            steps == 2 &&
+            iterations >= 2 &&
+            sph_all_finite() &&
+            std::isfinite(centerY1) &&
+            std::isfinite(minY1) &&
+            centerY1 < centerY0 &&
+            minY1 > -0.05f &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_DOUBLE_DFSPH_WASM_FAIL runtime"
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " steps=" << steps
+                      << " iterations=" << iterations
+                      << " centerY0=" << centerY0
+                      << " centerY1=" << centerY1
+                      << " minY0=" << minY0
+                      << " minY1=" << minY1
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 62;
+        }
+
+        std::cout << "SPLISHSPLASH_GENERIC_DOUBLE_DFSPH_WASM_OK"
+                  << " particles=" << count
+                  << " boundary=" << boundaryCount
+                  << " steps=" << steps
+                  << " iterations=" << iterations
                   << " centerY0=" << centerY0
                   << " centerY1=" << centerY1
                   << " minY=" << minY1

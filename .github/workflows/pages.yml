@@ -81,6 +81,7 @@ jobs:
           node tests/splishsplash_scene_json_contract.mjs
           node tests/splishsplash_generic_scene_contract.mjs
           node tests/splishsplash_generic_dfsph_contract.mjs
+          node tests/splishsplash_generic_double_dfsph_contract.mjs
 
       - name: Test WASM runtime reset
         run: node tests/wasm_runtime.mjs
@@ -122,6 +123,12 @@ jobs:
             kill "$CHROME_PID" "$HTTP_PID" 2>/dev/null || true
           }
           trap cleanup EXIT
+
+          if ! node tests/splishsplash_generic_double_dfsph_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
 
           if ! node tests/splishsplash_generic_dfsph_cdp.mjs; then
             cat /tmp/sph-http.log || true
