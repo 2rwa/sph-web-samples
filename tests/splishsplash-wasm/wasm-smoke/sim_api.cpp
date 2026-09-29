@@ -3,6 +3,7 @@
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "SPlisHSPlasH/TimeStep.h"
+#include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
@@ -232,7 +233,7 @@ int create_dambreak_simulation(const int requestedResolution)
 
     unsigned int index = 0;
     const Real startX = static_cast<Real>(-0.48);
-    const Real startY = static_cast<Real>(0.10);
+    const Real startY = static_cast<Real>(0.05);
     const Real halfZ = static_cast<Real>(nz - 1) * spacing * static_cast<Real>(0.5);
 
     for (int y = 0; y < ny; ++y)
@@ -268,6 +269,11 @@ int create_dambreak_simulation(const int requestedResolution)
     g_model->setViscosityMethod(1u);
 
     g_sim->setSimulationMethod(static_cast<int>(SimulationMethods::WCSPH));
+    TimeStepWCSPH* wcsph = static_cast<TimeStepWCSPH*>(g_sim->getTimeStep());
+    wcsph->setValue(TimeStepWCSPH::STIFFNESS, static_cast<Real>(25000.0));
+    wcsph->setValue(TimeStepWCSPH::EXPONENT, static_cast<Real>(1.0));
+    g_sim->setValue(Simulation::CFL_FACTOR, static_cast<Real>(1.0));
+    g_sim->setValue(Simulation::CFL_MAX_TIMESTEPSIZE, static_cast<Real>(0.005));
     g_sim->setSimulationInitialized(1);
 
     const std::vector<Vector3r> boundaryParticles = make_open_box_boundary(particleRadius);
