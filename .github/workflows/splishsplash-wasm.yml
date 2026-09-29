@@ -32,8 +32,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .cache/splishsplash-wasm-probe
-          key: splishsplash-wasm-v1-${{ runner.os }}-emscripten-3.1.6-${{ hashFiles('tests/splishsplash-wasm/prepare_emscripten.py') }}
+          key: splishsplash-wasm-v2-${{ runner.os }}-emscripten-3.1.6-${{ hashFiles('tests/splishsplash-wasm/wasm-smoke/**', 'tests/splishsplash-wasm/prepare_emscripten.py', 'tests/splishsplash-wasm/build.sh') }}
           restore-keys: |
+            splishsplash-wasm-v2-${{ runner.os }}-emscripten-3.1.6-
             splishsplash-wasm-v1-${{ runner.os }}-emscripten-3.1.6-
 
       - name: Build and execute SPlisHSPlasH WASM smoke probe
