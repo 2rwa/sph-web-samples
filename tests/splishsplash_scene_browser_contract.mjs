@@ -8,6 +8,8 @@ assert.match(page, /upstream Scene JSON browser/);
 assert.match(page, /CompressibleSPH_WCSPH\.json/);
 assert.match(page, /DamBreakModel\.json/);
 assert.match(page, /DoubleDamBreak\.json/);
+assert.match(page, /CompressibleSPH_ICSPH\.json/);
+assert.match(page, /CompressibleSPH_PF\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
 assert.match(app, /buildSceneFromIR/);
 assert.match(app, /for \(const \[name, expected\] of Object\.entries\(SCENES\)\)/);

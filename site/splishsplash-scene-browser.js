@@ -8,6 +8,8 @@ const SCENES = {
   "CompressibleSPH_WCSPH.json": { method: "WCSPH", particles: 9826, boundary: 23066 },
   "DamBreakModel.json": { method: "DFSPH", particles: 9261, boundary: 18002 },
   "DoubleDamBreak.json": { method: "DFSPH", particles: 7200, boundary: 23066 },
+  "CompressibleSPH_ICSPH.json": { method: "ICSPH", particles: 9826, boundary: 23066 },
+  "CompressibleSPH_PF.json": { method: "PF", particles: 9826, boundary: 23066 },
 };
 
 const canvas = document.querySelector("#view");
