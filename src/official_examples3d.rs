@@ -285,7 +285,14 @@ fn transform_samples(
     samples: &[Vector3<f32>],
     pose: &Pose,
 ) -> Vec<Vector3<f32>> {
-    samples.iter().map(|p| pose * *p).collect()
+    samples
+        .iter()
+        .map(|p| {
+            let rapier_p = RapierVector::new(p.x, p.y, p.z);
+            let world_p = *pose * rapier_p;
+            Vector3::new(world_p.x, world_p.y, world_p.z)
+        })
+        .collect()
 }
 
 fn sample_shape(
