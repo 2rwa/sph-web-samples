@@ -13,7 +13,9 @@
     p { margin: .25rem 0 .8rem; color: #91a4b7; }
     a { color: #9bd4ff; }
     .tools { display: flex; flex-wrap: wrap; gap: .45rem; margin: .8rem 0; }
-    button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; cursor: pointer; }
+    .particle-reset { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin: .8rem 0; }
+    select, button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; }
+    button { cursor: pointer; }
     button[aria-pressed="true"] { background: #28445b; border-color: #73c8ff; }
     button:hover { border-color: #73c8ff; }
     canvas { width: 100%; aspect-ratio: 4 / 3; display: block; touch-action: none; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
@@ -25,7 +27,19 @@
   <main>
     <p><a href="../../">← SPH Web Samples</a></p>
     <h1>Salva interactive obstacles</h1>
-    <p>1,000 Salva particles. Draw obstacles directly on the Canvas; they are added to the WASM simulation as Salva boundaries.</p>
+    <p>1,000–5,000 Salva particles. Draw obstacles directly on the Canvas; they are added to the WASM simulation as Salva boundaries.</p>
+
+    <div class="particle-reset">
+      <label for="particle-count">Particles</label>
+      <select id="particle-count">
+        <option value="1000" selected>1,000</option>
+        <option value="2000">2,000</option>
+        <option value="3000">3,000</option>
+        <option value="4000">4,000</option>
+        <option value="5000">5,000</option>
+      </select>
+      <button type="button" id="reset-particles">Reset particles only</button>
+    </div>
 
     <div class="tools" role="toolbar" aria-label="Obstacle tools">
       <button type="button" data-tool="circle" aria-pressed="true">Circle</button>
@@ -40,6 +54,7 @@
     <p class="help">
       Circle: drag center → radius. Box: drag one corner → opposite corner.
       Line: drag start → end. Free Draw: drag a path. Orange dots are the actual sampled boundary particles.
+      Reset particles only recreates the fluid while keeping all user obstacles.
     </p>
   </main>
   <script type="module" src="../../interactive-obstacles.js"></script>

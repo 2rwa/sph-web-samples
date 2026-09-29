@@ -10,7 +10,8 @@ Small browser experiments for SPH implementations.
   - Adjustable from 100 to 10,000 particles in 100-particle increments.
   - Displays FPS and measured milliseconds per SPH step.
 - [Salva interactive obstacles](./site/samples/salva-interactive-obstacles/)
-  - 1,000 particles.
+  - Selectable 1,000–5,000 particles.
+  - Particle-only reset preserves the outer container and all user obstacles.
   - Circle, Box, Line, and Free Draw tools.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.

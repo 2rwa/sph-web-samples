@@ -15,10 +15,10 @@ const BENCH_MAX_PARTICLES: usize = 10_000;
 const BENCH_PARTICLE_RADIUS: f32 = 0.02;
 
 const INTERACTIVE_PARTICLE_RADIUS: f32 = 0.02;
-const INTERACTIVE_PARTICLES_X: usize = 40;
-const INTERACTIVE_PARTICLES_Y: usize = 25;
-const INTERACTIVE_HALF_WIDTH: f32 = 1.35;
-const INTERACTIVE_HALF_HEIGHT: f32 = 1.15;
+const INTERACTIVE_MIN_PARTICLES: usize = 1_000;
+const INTERACTIVE_MAX_PARTICLES: usize = 5_000;
+const INTERACTIVE_HALF_WIDTH: f32 = 1.80;
+const INTERACTIVE_HALF_HEIGHT: f32 = 1.35;
 
 #[wasm_bindgen]
 pub struct Simulation {
@@ -177,7 +177,7 @@ impl InteractiveSimulation {
         );
 
         let fluid = Fluid::new(
-            interactive_particles(),
+            interactive_particles(INTERACTIVE_MIN_PARTICLES),
             INTERACTIVE_PARTICLE_RADIUS,
             1.0,
             InteractionGroups::default(),
@@ -207,6 +207,24 @@ impl InteractiveSimulation {
 
     pub fn obstacle_count(&self) -> usize {
         self.obstacle_handles.len()
+    }
+
+    pub fn reset_particles(&mut self, particle_count: usize) -> usize {
+        let particle_count = particle_count.clamp(
+            INTERACTIVE_MIN_PARTICLES,
+            INTERACTIVE_MAX_PARTICLES,
+        );
+
+        let _ = self.world.remove_fluid(self.fluid);
+        let fluid = Fluid::new(
+            interactive_particles(particle_count),
+            INTERACTIVE_PARTICLE_RADIUS,
+            1.0,
+            InteractionGroups::default(),
+        );
+        self.fluid = self.world.add_fluid(fluid);
+
+        particle_count
     }
 
     pub fn step(&mut self, dt: f32) {
@@ -424,21 +442,23 @@ fn benchmark_particles(
     particles
 }
 
-fn interactive_particles() -> Vec<Vector2<f32>> {
+fn interactive_particles(particle_count: usize) -> Vec<Vector2<f32>> {
     let spacing = INTERACTIVE_PARTICLE_RADIUS * 2.0;
-    let width = (INTERACTIVE_PARTICLES_X - 1) as f32 * spacing;
+    let columns = ((particle_count as f32 * 4.0 / 3.0).sqrt().ceil() as usize).max(1);
+    let rows = particle_count.div_ceil(columns);
+    let width = columns.saturating_sub(1) as f32 * spacing;
+    let height = rows.saturating_sub(1) as f32 * spacing;
     let left = -width * 0.5;
-    let bottom = 0.05;
-    let mut particles =
-        Vec::with_capacity(INTERACTIVE_PARTICLES_X * INTERACTIVE_PARTICLES_Y);
+    let bottom = 0.05 - height * 0.5;
 
-    for y in 0..INTERACTIVE_PARTICLES_Y {
-        for x in 0..INTERACTIVE_PARTICLES_X {
-            particles.push(Vector2::new(
-                left + x as f32 * spacing,
-                bottom + y as f32 * spacing,
-            ));
-        }
+    let mut particles = Vec::with_capacity(particle_count);
+    for i in 0..particle_count {
+        let x = i % columns;
+        let y = i / columns;
+        particles.push(Vector2::new(
+            left + x as f32 * spacing,
+            bottom + y as f32 * spacing,
+        ));
     }
 
     particles

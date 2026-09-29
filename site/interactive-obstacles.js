@@ -3,6 +3,8 @@ import init, { InteractiveSimulation } from "./pkg/sph_web_samples.js";
 const canvas = document.querySelector("#view");
 const status = document.querySelector("#status");
 const clearButton = document.querySelector("#clear-obstacles");
+const particleCountSelect = document.querySelector("#particle-count");
+const resetParticlesButton = document.querySelector("#reset-particles");
 const toolButtons = [...document.querySelectorAll("[data-tool]")];
 const ctx = canvas.getContext("2d", { alpha: false });
 
@@ -30,6 +32,16 @@ for (const button of toolButtons) {
 clearButton.addEventListener("click", () => {
   if (!sim) return;
   sim.clear_obstacles();
+});
+
+resetParticlesButton.addEventListener("click", () => {
+  if (!sim) return;
+  const requested = Number(particleCountSelect.value);
+  const actual = sim.reset_particles(requested);
+  particleCountSelect.value = String(actual);
+  frames = 0;
+  fps = 0;
+  fpsSince = performance.now();
 });
 
 function resizeCanvas() {
