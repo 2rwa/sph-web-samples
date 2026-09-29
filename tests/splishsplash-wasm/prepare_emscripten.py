@@ -39,7 +39,74 @@ def forward_toolchain(relative: str) -> None:
     path.write_text(text.replace(needle, inserted))
 
 
+def write_external_openmp_patcher() -> None:
+    helper = root / "CMake" / "disable_external_openmp.py"
+    helper.write_text(
+        """#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+if len(sys.argv) != 3:
+    raise SystemExit("usage: disable_external_openmp.py <compact|discregrid> <source-dir>")
+
+kind = sys.argv[1]
+src = Path(sys.argv[2]).resolve()
+
+if kind == "compact":
+    path = src / "CMakeLists.txt"
+    start_marker = "find_package(OpenMP REQUIRED)"
+    end_marker = "OPTION(BUILD_AS_SHARED_LIBS"
+elif kind == "discregrid":
+    path = src / "discregrid" / "CMakeLists.txt"
+    start_marker = "# OpenMP support."
+    end_marker = "# Eigen library."
+else:
+    raise SystemExit(f"unknown dependency kind: {kind}")
+
+text = path.read_text()
+start = text.find(start_marker)
+end = text.find(end_marker, start + 1)
+if start < 0 or end < 0:
+    raise RuntimeError(f"OpenMP block markers not found in {path}")
+
+replacement = "# OpenMP disabled for the Emscripten single-thread WASM probe.\\n\\n"
+path.write_text(text[:start] + replacement + text[end:])
+print(f"Disabled OpenMP requirement in {path}")
+"""
+    )
+
+
+def add_external_patch(relative: str, git_tag: str, kind: str) -> None:
+    path = root / relative
+    text = path.read_text()
+    tag_line = f'GIT_TAG "{git_tag}"'
+    patch_line = (
+        f'PATCH_COMMAND python3 "${{CMAKE_SOURCE_DIR}}/CMake/disable_external_openmp.py" '
+        f'{kind} "<SOURCE_DIR>"'
+    )
+    if patch_line in text:
+        return
+    pos = text.find(tag_line)
+    if pos < 0:
+        raise RuntimeError(f"git tag {git_tag} not found in {relative}")
+    line_end = text.find("\n", pos)
+    indent = text[text.rfind("\n", 0, pos) + 1:pos]
+    insertion = "\n" + indent + patch_line
+    path.write_text(text[:line_end] + insertion + text[line_end:])
+
+
 patch_common()
 forward_toolchain("CMake/NeighborhoodSearch.cmake")
 forward_toolchain("CMake/SetUpExternalProjects.cmake")
+write_external_openmp_patcher()
+add_external_patch(
+    "CMake/NeighborhoodSearch.cmake",
+    "b40afcf47fe1963b363eba2371f04b42720fcb1d",
+    "compact",
+)
+add_external_patch(
+    "CMake/SetUpExternalProjects.cmake",
+    "ddf20dc0480874bf02e0bdc6ded76c1f101b17fb",
+    "discregrid",
+)
 print("Applied Emscripten compatibility patches.")

@@ -22,7 +22,7 @@ Success is not just CMake configuration. The workflow must:
 `prepare_emscripten.py` applies only build-system compatibility changes to the temporary upstream checkout:
 
 - removes host `-march=...` flags when `EMSCRIPTEN` is active,
-- forwards `CMAKE_TOOLCHAIN_FILE` into CMake `ExternalProject` dependencies.
+- forwards `CMAKE_TOOLCHAIN_FILE` into CMake `ExternalProject` dependencies,\n- disables the hard-required OpenMP CMake blocks in CompactNSearch and Discregrid for the initial single-thread WASM probe.
 
 The upstream source is never vendored or modified in this repository.
 
