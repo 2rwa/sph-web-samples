@@ -141,10 +141,9 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
   for (const body of rigidBodies) {
     if (
       !body.isDynamic &&
-      Math.abs(body.rotationAngle) <= 1e-8 &&
       (body.geometryFile?.endsWith("UnitBox.obj") || body.geometryFile?.endsWith("sphere.obj"))
     ) {
-      bridgeRequirements.push("Static rigid body is supported through a precomputed native Bender2019 volume map");
+      bridgeRequirements.push("Static rigid body is supported through a precomputed native Bender2019 volume map with axis-angle transform");
     } else {
       bridgeRequirements.push(`Rigid body ${body.geometryFile ?? body.index} needs a browser geometry/boundary bridge`);
     }

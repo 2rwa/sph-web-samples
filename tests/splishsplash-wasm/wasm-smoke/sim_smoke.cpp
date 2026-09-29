@@ -72,6 +72,12 @@ int sph_scene_add_unit_box_bender_file(
     float tx, float ty, float tz,
     float sx, float sy, float sz,
     const char* mapFile);
+int sph_scene_add_unit_box_bender_file_rotated(
+    float tx, float ty, float tz,
+    float sx, float sy, float sz,
+    float ax, float ay, float az,
+    float angle,
+    const char* mapFile);
 int sph_scene_add_mesh_bender_obj(
     float tx, float ty, float tz,
     float sx, float sy, float sz,
@@ -84,6 +90,11 @@ int sph_scene_add_mesh_bender_obj(
 int sph_scene_add_mesh_bender_file(
     float tx, float ty, float tz,
     const char* mapFile);
+int sph_scene_add_mesh_bender_file_rotated(
+    float tx, float ty, float tz,
+    float ax, float ay, float az,
+    float angle,
+    const char* mapFile);
 int sph_save_last_bender_map(const char* mapFile);
 int sph_scene_commit();
 int sph_step(int steps);
@@ -91,6 +102,7 @@ int sph_particle_count();
 int sph_boundary_count();
 int sph_boundary_model_count();
 int sph_boundary_handling_method();
+float sph_bender_boundary_rotation_angle();
 float sph_last_bender_map_build_ms();
 float sph_bender_boundary_volume_sum();
 int sph_point_set_count();
@@ -1446,5 +1458,74 @@ int main()
         sph_destroy();
     }
 
+
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 163;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_set_standard_viscosity(0.01f);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -0.25f, 0.05f, -0.25f,
+             0.25f, 0.55f,  0.25f,
+             0.0f, 0.0f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+
+        const float expectedAngle = 0.35f;
+        const int boxes = sph_scene_add_unit_box_bender_file_rotated(
+            0.0f, -0.25f, 0.0f,
+            3.0f, 0.5f, 3.0f,
+            0.0f, 0.0f, 1.0f,
+            expectedAngle,
+            "unitbox-3x0p5x3-r20-i0-t0.cdm");
+
+        const int count = sph_scene_commit();
+        const float actualAngle = sph_bender_boundary_rotation_angle();
+        const int steps = sph_step(1);
+        const float time = sph_time();
+
+        const bool ok =
+            blocks == 1 &&
+            boxes == 1 &&
+            count == 1331 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            std::abs(actualAngle - expectedAngle) < 1.0e-4f &&
+            steps == 1 &&
+            sph_all_finite() &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_ROTATED_BENDER_WASM_FAIL"
+                      << " particles=" << count
+                      << " boundaryModels=" << sph_boundary_model_count()
+                      << " expectedAngle=" << expectedAngle
+                      << " actualAngle=" << actualAngle
+                      << " steps=" << steps
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 164;
+        }
+
+        std::cout << "SPLISHSPLASH_ROTATED_BENDER_WASM_OK"
+                  << " particles=" << count
+                  << " boundaryModels=" << sph_boundary_model_count()
+                  << " axis=0,0,1"
+                  << " expectedAngle=" << expectedAngle
+                  << " actualAngle=" << actualAngle
+                  << " mapReuse=unitbox-3x0p5x3-r20-i0-t0.cdm"
+                  << " steps=" << steps
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
     return 0;
-}
+

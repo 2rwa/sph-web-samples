@@ -369,8 +369,8 @@ export async function prepareBender2019Maps(Module, ir) {
 
   const files = [];
   for (const body of ir.rigidBodies) {
-    if (body.isDynamic || Math.abs(body.rotationAngle) > 1e-8) {
-      throw new Error("Bender2019 browser bridge currently supports static unrotated rigid bodies only");
+    if (body.isDynamic) {
+      throw new Error("Bender2019 browser bridge currently supports static rigid bodies only");
     }
 
     const key = benderMapKey(body, ir.configuration.particleRadius);
@@ -524,20 +524,40 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
     const mapFile = prepared[i].fsPath;
     if (body.geometryFile?.endsWith("UnitBox.obj")) {
       const result = Module.ccall(
-        "sph_scene_add_unit_box_bender_file",
+        "sph_scene_add_unit_box_bender_file_rotated",
         "number",
-        ["number","number","number","number","number","number","string"],
-        [...body.translation, ...body.scale, mapFile],
+        [
+          "number","number","number",
+          "number","number","number",
+          "number","number","number",
+          "number","string"
+        ],
+        [
+          ...body.translation,
+          ...body.scale,
+          ...body.rotationAxis,
+          body.rotationAngle,
+          mapFile,
+        ],
       );
-      requireCall(result, "sph_scene_add_unit_box_bender_file");
+      requireCall(result, "sph_scene_add_unit_box_bender_file_rotated");
     } else {
       const result = Module.ccall(
-        "sph_scene_add_mesh_bender_file",
+        "sph_scene_add_mesh_bender_file_rotated",
         "number",
-        ["number","number","number","string"],
-        [...body.translation, mapFile],
+        [
+          "number","number","number",
+          "number","number","number",
+          "number","string"
+        ],
+        [
+          ...body.translation,
+          ...body.rotationAxis,
+          body.rotationAngle,
+          mapFile,
+        ],
       );
-      requireCall(result, "sph_scene_add_mesh_bender_file");
+      requireCall(result, "sph_scene_add_mesh_bender_file_rotated");
     }
   }
 

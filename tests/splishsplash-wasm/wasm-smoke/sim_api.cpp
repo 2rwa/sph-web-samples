@@ -69,6 +69,8 @@ struct PendingUnitBox
     Vector3r translation;
     Vector3r scale;
     bool useBender;
+    Vector3r rotationAxis;
+    Real rotationAngle;
     unsigned int resolutionX;
     unsigned int resolutionY;
     unsigned int resolutionZ;
@@ -83,6 +85,8 @@ struct PendingMeshBoundary
     Vector3r scale;
     std::string meshFile;
     std::string mapFile;
+    Vector3r rotationAxis;
+    Real rotationAngle;
     unsigned int resolutionX;
     unsigned int resolutionY;
     unsigned int resolutionZ;
@@ -356,6 +360,17 @@ std::vector<Vector3r> make_open_box_boundary(const Real spacing)
 
 
 
+
+Quaternionr boundary_rotation(const Vector3r& axis, const Real angle)
+{
+    if (std::abs(angle) <= static_cast<Real>(1.0e-12) ||
+        axis.squaredNorm() <= static_cast<Real>(1.0e-12))
+        return Quaternionr::Identity();
+
+    return Quaternionr(
+        Eigen::AngleAxis<Real>(angle, axis.normalized()));
+}
+
 double signed_distance_box(const Eigen::Vector3d& x, const Eigen::Vector3d& halfExtents)
 {
     const Eigen::Vector3d q = x.cwiseAbs() - halfExtents;
@@ -434,8 +449,9 @@ void add_bender_box_boundary(const PendingUnitBox& box)
     StaticRigidBody* rb = new StaticRigidBody();
     rb->setPosition0(box.translation);
     rb->setPosition(box.translation);
-    rb->setRotation0(Quaternionr::Identity());
-    rb->setRotation(Quaternionr::Identity());
+    const Quaternionr rotation = boundary_rotation(box.rotationAxis, box.rotationAngle);
+    rb->setRotation0(rotation);
+    rb->setRotation(rotation);
 
     BoundaryModel_Bender2019* bm = new BoundaryModel_Bender2019();
     bm->initModel(rb);
@@ -561,8 +577,9 @@ void add_bender_mesh_boundary(const PendingMeshBoundary& boundary)
     StaticRigidBody* rb = new StaticRigidBody();
     rb->setPosition0(boundary.translation);
     rb->setPosition(boundary.translation);
-    rb->setRotation0(Quaternionr::Identity());
-    rb->setRotation(Quaternionr::Identity());
+    const Quaternionr rotation = boundary_rotation(boundary.rotationAxis, boundary.rotationAngle);
+    rb->setRotation0(rotation);
+    rb->setRotation(rotation);
 
     BoundaryModel_Bender2019* bm = new BoundaryModel_Bender2019();
     bm->initModel(rb);
@@ -1412,6 +1429,8 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box(
     box.translation = Vector3r(tx, ty, tz);
     box.scale = Vector3r(sx, sy, sz);
     box.useBender = false;
+    box.rotationAxis = Vector3r(1.0, 0.0, 0.0);
+    box.rotationAngle = static_cast<Real>(0.0);
     box.resolutionX = 0u;
     box.resolutionY = 0u;
     box.resolutionZ = 0u;
@@ -1440,6 +1459,8 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender(
     box.translation = Vector3r(tx, ty, tz);
     box.scale = Vector3r(sx, sy, sz);
     box.useBender = true;
+    box.rotationAxis = Vector3r(1.0, 0.0, 0.0);
+    box.rotationAngle = static_cast<Real>(0.0);
     box.resolutionX = resolutionX;
     box.resolutionY = resolutionY;
     box.resolutionZ = resolutionZ;
@@ -1462,6 +1483,34 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender_file(
     box.translation = Vector3r(tx, ty, tz);
     box.scale = Vector3r(sx, sy, sz);
     box.useBender = true;
+    box.rotationAxis = Vector3r(1.0, 0.0, 0.0);
+    box.rotationAngle = static_cast<Real>(0.0);
+    box.resolutionX = 0u;
+    box.resolutionY = 0u;
+    box.resolutionZ = 0u;
+    box.mapInvert = true;
+    box.mapThickness = static_cast<Real>(0.0);
+    box.mapFile = mapFile;
+    g_pending_boxes.push_back(box);
+    return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender_file_rotated(
+    const float tx, const float ty, const float tz,
+    const float sx, const float sy, const float sz,
+    const float ax, const float ay, const float az,
+    const float angle,
+    const char* mapFile)
+{
+    if (!g_builder_active || mapFile == nullptr || mapFile[0] == '\0')
+        return 0;
+
+    PendingUnitBox box;
+    box.translation = Vector3r(tx, ty, tz);
+    box.scale = Vector3r(sx, sy, sz);
+    box.useBender = true;
+    box.rotationAxis = Vector3r(ax, ay, az);
+    box.rotationAngle = static_cast<Real>(angle);
     box.resolutionX = 0u;
     box.resolutionY = 0u;
     box.resolutionZ = 0u;
@@ -1496,6 +1545,8 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_mesh_bender_obj(
     boundary.scale = Vector3r(sx, sy, sz);
     boundary.meshFile = meshFile;
     boundary.mapFile.clear();
+    boundary.rotationAxis = Vector3r(1.0, 0.0, 0.0);
+    boundary.rotationAngle = static_cast<Real>(0.0);
     boundary.resolutionX = resolutionX;
     boundary.resolutionY = resolutionY;
     boundary.resolutionZ = resolutionZ;
@@ -1520,6 +1571,33 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_mesh_bender_file(
     boundary.scale = Vector3r::Ones();
     boundary.meshFile.clear();
     boundary.mapFile = mapFile;
+    boundary.rotationAxis = Vector3r(1.0, 0.0, 0.0);
+    boundary.rotationAngle = static_cast<Real>(0.0);
+    boundary.resolutionX = 0u;
+    boundary.resolutionY = 0u;
+    boundary.resolutionZ = 0u;
+    boundary.mapInvert = false;
+    boundary.mapThickness = static_cast<Real>(0.0);
+    g_pending_meshes.push_back(boundary);
+    return static_cast<int>(g_pending_meshes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_mesh_bender_file_rotated(
+    const float tx, const float ty, const float tz,
+    const float ax, const float ay, const float az,
+    const float angle,
+    const char* mapFile)
+{
+    if (!g_builder_active || mapFile == nullptr || mapFile[0] == '\0')
+        return 0;
+
+    PendingMeshBoundary boundary;
+    boundary.translation = Vector3r(tx, ty, tz);
+    boundary.scale = Vector3r::Ones();
+    boundary.meshFile.clear();
+    boundary.mapFile = mapFile;
+    boundary.rotationAxis = Vector3r(ax, ay, az);
+    boundary.rotationAngle = static_cast<Real>(angle);
     boundary.resolutionX = 0u;
     boundary.resolutionY = 0u;
     boundary.resolutionZ = 0u;
@@ -1702,6 +1780,16 @@ EMSCRIPTEN_KEEPALIVE int sph_boundary_model_count()
 EMSCRIPTEN_KEEPALIVE int sph_boundary_handling_method()
 {
     return g_sim ? static_cast<int>(g_sim->getBoundaryHandlingMethod()) : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_bender_boundary_rotation_angle()
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject())
+        return -1.0f;
+
+    const Quaternionr& q = g_boundary_bender->getRigidBodyObject()->getRotation();
+    return static_cast<float>(
+        Eigen::AngleAxis<Real>(q).angle());
 }
 
 EMSCRIPTEN_KEEPALIVE float sph_last_bender_map_build_ms()

@@ -115,6 +115,20 @@ function readProjected(count, ptr, stride) {
 }
 
 
+
+function rotateLocal([x,y,z], axis, angle) {
+  const [ax0,ay0,az0] = axis;
+  const n = Math.hypot(ax0,ay0,az0);
+  if (!(n > 1e-12) || Math.abs(angle) <= 1e-12) return [x,y,z];
+  const ax=ax0/n, ay=ay0/n, az=az0/n;
+  const c=Math.cos(angle), s=Math.sin(angle), t=1-c;
+  return [
+    (t*ax*ax+c)*x + (t*ax*ay-s*az)*y + (t*ax*az+s*ay)*z,
+    (t*ax*ay+s*az)*x + (t*ay*ay+c)*y + (t*ay*az-s*ax)*z,
+    (t*ax*az-s*ay)*x + (t*ay*az+s*ax)*y + (t*az*az+c)*z,
+  ];
+}
+
 function drawRigidBodies() {
   if (!currentIR) return;
   const edges = [
@@ -134,7 +148,8 @@ function drawRigidBodies() {
       const corners = [
         [-sx,-sy,-sz],[ sx,-sy,-sz],[-sx, sy,-sz],[ sx, sy,-sz],
         [-sx,-sy, sz],[ sx,-sy, sz],[-sx, sy, sz],[ sx, sy, sz],
-      ].map(([x,y,z]) => project(x+tx,y+ty,z+tz));
+      ].map((p) => rotateLocal(p, body.rotationAxis, body.rotationAngle))
+       .map(([x,y,z]) => project(x+tx,y+ty,z+tz));
 
       ctx.beginPath();
       for (const [a,b] of edges) {
@@ -154,6 +169,7 @@ function drawRigidBodies() {
           if (plane === "xy") { x=sx*c; y=sy*s; }
           else if (plane === "xz") { x=sx*c; z=sz*s; }
           else { y=sy*c; z=sz*s; }
+          [x,y,z] = rotateLocal([x,y,z], body.rotationAxis, body.rotationAngle);
           const p = project(x+tx,y+ty,z+tz);
           if (i === 0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
         }
