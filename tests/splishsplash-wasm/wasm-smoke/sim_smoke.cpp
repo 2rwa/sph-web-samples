@@ -32,6 +32,10 @@ int sph_scene_set_iisph(
     unsigned int maxIterations,
     float maxError);
 int sph_scene_set_material(float density0, unsigned int viscosityMethod);
+int sph_scene_set_surface_tension_method(unsigned int method);
+int sph_scene_set_surface_real(const char* name, float value);
+int sph_scene_set_surface_int(const char* name, int value);
+int sph_scene_set_surface_bool(const char* name, int value);
 int sph_scene_set_standard_viscosity(float viscosity);
 int sph_scene_set_peer2015_viscosity(
     float viscosity,
@@ -1087,6 +1091,87 @@ int main()
         }
         std::cout << "SPLISHSPLASH_BUCKLING_WEILER2018_WASM_OK"
                   << " particles=" << count
+                  << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.02f, 3, 2))
+            return 150;
+
+        sph_scene_set_gravity(0.0f, 0.0f, 0.0f);
+        sph_scene_set_timing(0, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_iisph(2u, 100u, 0.01f);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_set_standard_viscosity(0.01f);
+
+        sph_scene_set_surface_tension_method(5u);
+        sph_scene_set_surface_real("surfaceTension", 0.1f);
+        sph_scene_set_surface_int("surfTZRversion", 0);
+        sph_scene_set_surface_int("surfTZRCsd", 60000);
+        sph_scene_set_surface_real("surfTZRr-ratio", 0.8f);
+        sph_scene_set_surface_real("surfTZRtau", 0.5f);
+        sph_scene_set_surface_real("surfTZRd", 28.0f);
+        sph_scene_set_surface_int("surfTZRsampling", 0);
+        sph_scene_set_surface_int("surfTZRnormal-mode", 2);
+        sph_scene_set_surface_real("surfTZRPcaMixNrm", 0.8f);
+        sph_scene_set_surface_real("surfTZRPcaMixCur", 0.4f);
+        sph_scene_set_surface_int("surfTZRMCSamples", 120);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -0.5f, -0.5f, -0.5f,
+             0.5f,  0.5f,  0.5f,
+             0.0f,  0.0f,  0.0f,
+             0.9f,  0.9f,  0.9f,
+             0.0f,  0.0f,  0.0f,
+             0);
+
+        const int count = sph_scene_commit();
+        const int surfaceMethod = sph_surface_tension_method();
+        const int missing = sph_surface_parameter_missing_count();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            blocks == 1 &&
+            count == 12167 &&
+            surfaceMethod == 5 &&
+            missing == 0 &&
+            steps == 1 &&
+            method == 3 &&
+            iterations >= 2 &&
+            sph_all_finite() &&
+            std::isfinite(minY) &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_SURFACE_ZR2020_WASM_FAIL"
+                      << " particles=" << count
+                      << " surfaceMethod=" << surfaceMethod
+                      << " missingParams=" << missing
+                      << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 151;
+        }
+
+        std::cout << "SPLISHSPLASH_SURFACE_ZR2020_WASM_OK"
+                  << " particles=" << count
+                  << " surfaceMethod=" << surfaceMethod
+                  << " missingParams=" << missing
                   << " steps=" << steps
                   << " method=" << method
                   << " iterations=" << iterations

@@ -36,7 +36,7 @@ compute_input_hash() {
       "openmp=OFF" \
       "double=OFF" \
       "python=OFF" \
-      "third-party=OFF" \
+      "third-party=ON" \
       "$EMCC_VERSION"
 
     sha256sum "$TEST_DIR/prepare_emscripten.py"
@@ -114,7 +114,7 @@ CMAKE_EOF
     -DUSE_OpenMP=OFF \
     -DUSE_DOUBLE_PRECISION=OFF \
     -DUSE_PYTHON_BINDINGS=OFF \
-    -DUSE_THIRD_PARTY_METHODS=OFF
+    -DUSE_THIRD_PARTY_METHODS=ON
 
   echo "== build wasm ExternalProject dependencies first =="
   cmake --build "$BUILD_DIR" \

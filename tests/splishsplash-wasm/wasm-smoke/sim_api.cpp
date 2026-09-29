@@ -74,8 +74,29 @@ struct PendingUnitBox
     std::string mapFile;
 };
 
+struct PendingNamedReal
+{
+    std::string name;
+    Real value;
+};
+
+struct PendingNamedInt
+{
+    std::string name;
+    int value;
+};
+
+struct PendingNamedBool
+{
+    std::string name;
+    bool value;
+};
+
 std::vector<PendingFluidBlock> g_pending_blocks;
 std::vector<PendingUnitBox> g_pending_boxes;
+std::vector<PendingNamedReal> g_pending_surface_reals;
+std::vector<PendingNamedInt> g_pending_surface_ints;
+std::vector<PendingNamedBool> g_pending_surface_bools;
 Real g_builder_particle_radius = static_cast<Real>(0.025);
 Vector3r g_builder_gravity(0.0, -9.81, 0.0);
 int g_builder_simulation_method = 0;
@@ -86,6 +107,8 @@ Real g_builder_cfl_max = static_cast<Real>(0.001);
 Real g_builder_initial_dt = static_cast<Real>(0.001);
 Real g_builder_density0 = static_cast<Real>(1000.0);
 unsigned int g_builder_viscosity_method = 1u;
+unsigned int g_builder_surface_tension_method = 0u;
+int g_surface_parameter_missing_count = 0;
 Real g_builder_standard_viscosity = static_cast<Real>(0.01);
 Real g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
 Real g_builder_wcsph_exponent = static_cast<Real>(1.0);
@@ -131,6 +154,9 @@ void reset_builder()
 {
     g_pending_blocks.clear();
     g_pending_boxes.clear();
+    g_pending_surface_reals.clear();
+    g_pending_surface_ints.clear();
+    g_pending_surface_bools.clear();
     g_builder_particle_radius = static_cast<Real>(0.025);
     g_builder_gravity = Vector3r(0.0, -9.81, 0.0);
     g_builder_simulation_method = 0;
@@ -141,6 +167,8 @@ void reset_builder()
     g_builder_initial_dt = static_cast<Real>(0.001);
     g_builder_density0 = static_cast<Real>(1000.0);
     g_builder_viscosity_method = 1u;
+    g_builder_surface_tension_method = 0u;
+    g_surface_parameter_missing_count = 0;
     g_builder_standard_viscosity = static_cast<Real>(0.01);
     g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
     g_builder_wcsph_exponent = static_cast<Real>(1.0);
@@ -181,6 +209,25 @@ void reset_builder()
     g_builder_weiler2018_max_iterations = 50u;
     g_builder_weiler2018_max_error = static_cast<Real>(0.01);
     g_builder_active = false;
+}
+
+
+template<typename T>
+bool set_named_parameter(GenParam::ParameterObject* object, const std::string& name, const T value)
+{
+    if (object == nullptr)
+        return false;
+
+    const unsigned int count = object->numParameters();
+    for (unsigned int i = 0; i < count; ++i)
+    {
+        if (object->getName(i) == name)
+        {
+            object->setValue<T>(i, value);
+            return true;
+        }
+    }
+    return false;
 }
 
 void refresh_positions()
@@ -638,6 +685,28 @@ int commit_generic_scene()
             g_builder_weiler2018_max_error);
     }
 
+    
+    g_model->setSurfaceTensionMethod(g_builder_surface_tension_method);
+    g_surface_parameter_missing_count = 0;
+    GenParam::ParameterObject* surfaceParams =
+        static_cast<GenParam::ParameterObject*>(g_model->getSurfaceTensionBase());
+
+    for (const PendingNamedReal& param : g_pending_surface_reals)
+    {
+        if (!set_named_parameter<Real>(surfaceParams, param.name, param.value))
+            ++g_surface_parameter_missing_count;
+    }
+    for (const PendingNamedInt& param : g_pending_surface_ints)
+    {
+        if (!set_named_parameter<int>(surfaceParams, param.name, param.value))
+            ++g_surface_parameter_missing_count;
+    }
+    for (const PendingNamedBool& param : g_pending_surface_bools)
+    {
+        if (!set_named_parameter<bool>(surfaceParams, param.name, param.value))
+            ++g_surface_parameter_missing_count;
+    }
+
     g_sim->setSimulationMethod(g_builder_simulation_method);
 
     if (g_builder_simulation_method == static_cast<int>(SimulationMethods::WCSPH))
@@ -1013,6 +1082,47 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_material(
     return 1;
 }
 
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_surface_tension_method(const unsigned int method)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_surface_tension_method = method;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_surface_real(const char* name, const float value)
+{
+    if (!g_builder_active || name == nullptr || name[0] == '\0')
+        return 0;
+    PendingNamedReal param;
+    param.name = name;
+    param.value = static_cast<Real>(value);
+    g_pending_surface_reals.push_back(param);
+    return static_cast<int>(g_pending_surface_reals.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_surface_int(const char* name, const int value)
+{
+    if (!g_builder_active || name == nullptr || name[0] == '\0')
+        return 0;
+    PendingNamedInt param;
+    param.name = name;
+    param.value = value;
+    g_pending_surface_ints.push_back(param);
+    return static_cast<int>(g_pending_surface_ints.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_surface_bool(const char* name, const int value)
+{
+    if (!g_builder_active || name == nullptr || name[0] == '\0')
+        return 0;
+    PendingNamedBool param;
+    param.name = name;
+    param.value = value != 0;
+    g_pending_surface_bools.push_back(param);
+    return static_cast<int>(g_pending_surface_bools.size());
+}
+
 EMSCRIPTEN_KEEPALIVE int sph_scene_set_standard_viscosity(const float viscosity)
 {
     if (!g_builder_active)
@@ -1328,6 +1438,16 @@ EMSCRIPTEN_KEEPALIVE int sph_step_count()
 EMSCRIPTEN_KEEPALIVE int sph_scene()
 {
     return g_scene;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_surface_tension_method()
+{
+    return g_model ? static_cast<int>(g_model->getSurfaceTensionMethod()) : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_surface_parameter_missing_count()
+{
+    return g_surface_parameter_missing_count;
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_simulation_method()
