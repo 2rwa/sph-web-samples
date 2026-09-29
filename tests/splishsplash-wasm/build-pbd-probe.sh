@@ -142,6 +142,16 @@ fi
 /usr/bin/node "$PBD_TIMESTEP_JS" | tee "$OUT_DIR/pbd-timestep-runtime.txt"
 grep -q 'SPLISHSPLASH_PBD_TIMESTEP_WASM_OK' "$OUT_DIR/pbd-timestep-runtime.txt"
 
+echo "== run PBD target-velocity motor hinge probe =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_motor_smoke --parallel 2
+PBD_MOTOR_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_motor_smoke.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_MOTOR_JS" || ! -s "$PBD_MOTOR_JS" || ! -s "${PBD_MOTOR_JS%.js}.wasm" ]]; then
+  echo "PBD motor smoke output not found" >&2
+  exit 28
+fi
+/usr/bin/node "$PBD_MOTOR_JS" | tee "$OUT_DIR/pbd-motor-runtime.txt"
+grep -q 'SPLISHSPLASH_PBD_MOTOR_WASM_OK' "$OUT_DIR/pbd-motor-runtime.txt"
+
 echo "== run SPH -> Bender2019 -> upstream PBD timestep coupling probe =="
 cmake --build "$BUILD_DIR" --target splishsplash_pbd_upstream_coupling_smoke --parallel 2
 PBD_UPSTREAM_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_upstream_coupling_smoke.js' -print -quit 2>/dev/null || true)"

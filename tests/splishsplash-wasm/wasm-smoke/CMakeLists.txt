@@ -176,3 +176,20 @@ target_link_options(splishsplash_pbd_upstream_coupling_smoke PRIVATE
     "-sNODERAWFS=1"
 )
 set_target_properties(splishsplash_pbd_upstream_coupling_smoke PROPERTIES SUFFIX ".js")
+
+add_executable(splishsplash_pbd_motor_smoke EXCLUDE_FROM_ALL
+    pbd_motor_hinge_smoke.cpp
+)
+add_dependencies(splishsplash_pbd_motor_smoke Ext_PBD)
+target_link_libraries(splishsplash_pbd_motor_smoke PRIVATE
+    ${PBD_LIBRARIES}
+    PBD_includes
+)
+target_link_options(splishsplash_pbd_motor_smoke PRIVATE
+    "-sENVIRONMENT=node"
+    "-sEXIT_RUNTIME=1"
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sWASM_ASYNC_COMPILATION=0"
+    "-sASSERTIONS=1"
+)
+set_target_properties(splishsplash_pbd_motor_smoke PROPERTIES SUFFIX ".js")
