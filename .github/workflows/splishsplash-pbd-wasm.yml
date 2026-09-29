@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tests/splishsplash-wasm/build-pbd-probe.sh'
+      - 'tests/splishsplash-wasm/prepare_emscripten.py'
       - '.github/workflows/splishsplash-pbd-wasm.yml'
   workflow_dispatch:
 
