@@ -20,6 +20,9 @@
 #include "SPlisHSPlasH/Utilities/GaussQuadrature.h"
 #include "SPlisHSPlasH/SPHKernels.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
+#include "SPlisHSPlasH/TriangleMesh.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
+#include "Discregrid/All"
 #include "Utilities/Logger.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
@@ -74,6 +77,19 @@ struct PendingUnitBox
     std::string mapFile;
 };
 
+struct PendingMeshBoundary
+{
+    Vector3r translation;
+    Vector3r scale;
+    std::string meshFile;
+    std::string mapFile;
+    unsigned int resolutionX;
+    unsigned int resolutionY;
+    unsigned int resolutionZ;
+    bool mapInvert;
+    Real mapThickness;
+};
+
 struct PendingNamedReal
 {
     std::string name;
@@ -94,6 +110,7 @@ struct PendingNamedBool
 
 std::vector<PendingFluidBlock> g_pending_blocks;
 std::vector<PendingUnitBox> g_pending_boxes;
+std::vector<PendingMeshBoundary> g_pending_meshes;
 std::vector<PendingNamedReal> g_pending_surface_reals;
 std::vector<PendingNamedInt> g_pending_surface_ints;
 std::vector<PendingNamedBool> g_pending_surface_bools;
@@ -154,6 +171,7 @@ void reset_builder()
 {
     g_pending_blocks.clear();
     g_pending_boxes.clear();
+    g_pending_meshes.clear();
     g_pending_surface_reals.clear();
     g_pending_surface_ints.clear();
     g_pending_surface_bools.clear();
@@ -436,6 +454,144 @@ void add_bender_box_boundary(const PendingUnitBox& box)
     g_boundary_bender = bm;
 }
 
+
+Discregrid::CubicLagrangeDiscreteGrid* make_bender_mesh_volume_map(const PendingMeshBoundary& boundary)
+{
+    TriangleMesh mesh;
+    if (!MeshImport::importMesh(
+            boundary.meshFile,
+            mesh,
+            Vector3r::Zero(),
+            Matrix3r::Identity(),
+            boundary.scale))
+        return nullptr;
+
+    const std::vector<Vector3r>& x = mesh.getVertices();
+    const std::vector<unsigned int>& faces = mesh.getFaces();
+    if (x.empty() || faces.size() < 3u)
+        return nullptr;
+
+#ifdef USE_DOUBLE
+    Discregrid::TriangleMesh sdfMesh(
+        &x[0][0],
+        faces.data(),
+        static_cast<unsigned int>(x.size()),
+        static_cast<unsigned int>(faces.size() / 3u));
+#else
+    std::vector<double> doubleVec(3u * x.size());
+    for (unsigned int i = 0; i < x.size(); ++i)
+        for (unsigned int j = 0; j < 3u; ++j)
+            doubleVec[3u * i + j] = static_cast<double>(x[i][j]);
+    Discregrid::TriangleMesh sdfMesh(
+        doubleVec.data(),
+        faces.data(),
+        static_cast<unsigned int>(x.size()),
+        static_cast<unsigned int>(faces.size() / 3u));
+#endif
+
+    Discregrid::TriangleMeshDistance md(sdfMesh);
+    Eigen::AlignedBox3d domain;
+    for (const Vector3r& p : x)
+        domain.extend(p.cast<double>());
+
+    const Real supportRadius = g_sim->getSupportRadius();
+    const Real tolerance = boundary.mapThickness;
+    domain.max() +=
+        (8.0 * static_cast<double>(supportRadius) + static_cast<double>(tolerance)) *
+        Eigen::Vector3d::Ones();
+    domain.min() -=
+        (8.0 * static_cast<double>(supportRadius) + static_cast<double>(tolerance)) *
+        Eigen::Vector3d::Ones();
+
+    Discregrid::CubicLagrangeDiscreteGrid* volumeMap =
+        new Discregrid::CubicLagrangeDiscreteGrid(
+            domain,
+            std::array<unsigned int, 3>({
+                boundary.resolutionX,
+                boundary.resolutionY,
+                boundary.resolutionZ
+            }));
+
+    const Real sign = boundary.mapInvert
+        ? static_cast<Real>(-1.0)
+        : static_cast<Real>(1.0);
+
+    auto sdf = [&md, sign, tolerance](const Eigen::Vector3d& xi)
+    {
+        return static_cast<double>(sign) *
+            (md.signed_distance(xi).distance - static_cast<double>(tolerance));
+    };
+    volumeMap->addFunction(sdf, false);
+
+    const Eigen::AlignedBox3d intDomain(
+        Eigen::Vector3d::Constant(-static_cast<double>(supportRadius)),
+        Eigen::Vector3d::Constant( static_cast<double>(supportRadius)));
+
+    auto volumeFunc = [volumeMap, supportRadius, intDomain](const Eigen::Vector3d& p)
+    {
+        const double distX = volumeMap->interpolate(0u, p);
+        if (distX > 2.0 * static_cast<double>(supportRadius))
+            return 0.0;
+
+        auto integrand = [volumeMap, supportRadius, &p](const Eigen::Vector3d& xi) -> double
+        {
+            if (xi.squaredNorm() >
+                static_cast<double>(supportRadius * supportRadius))
+                return 0.0;
+
+            const double dist = volumeMap->interpolate(0u, p + xi);
+            if (dist <= 0.0)
+                return 1.0;
+            if (dist < static_cast<double>(supportRadius))
+                return static_cast<double>(
+                    CubicKernel::W(static_cast<Real>(dist)) /
+                    CubicKernel::W_zero());
+            return 0.0;
+        };
+
+        return 0.8 * GaussQuadrature::integrate(integrand, intDomain, 30);
+    };
+
+    volumeMap->addFunction(volumeFunc, false);
+    return volumeMap;
+}
+
+void add_bender_mesh_boundary(const PendingMeshBoundary& boundary)
+{
+    StaticRigidBody* rb = new StaticRigidBody();
+    rb->setPosition0(boundary.translation);
+    rb->setPosition(boundary.translation);
+    rb->setRotation0(Quaternionr::Identity());
+    rb->setRotation(Quaternionr::Identity());
+
+    BoundaryModel_Bender2019* bm = new BoundaryModel_Bender2019();
+    bm->initModel(rb);
+
+    const auto begin = std::chrono::steady_clock::now();
+    Discregrid::CubicLagrangeDiscreteGrid* map = nullptr;
+    if (!boundary.mapFile.empty())
+        map = new Discregrid::CubicLagrangeDiscreteGrid(boundary.mapFile);
+    else
+        map = make_bender_mesh_volume_map(boundary);
+    const auto end = std::chrono::steady_clock::now();
+
+    if (map == nullptr)
+    {
+        delete bm;
+        delete rb;
+        return;
+    }
+
+    bm->setMap(map);
+    g_last_bender_map_build_ms =
+        std::chrono::duration<double, std::milli>(end - begin).count();
+
+    g_sim->addBoundaryModel(bm);
+    bm->deferredInit();
+    g_boundary_bender = bm;
+}
+
+
 void add_akinci_boundary(const std::vector<Vector3r>& boundaryParticles);
 
 std::vector<Vector3r> make_unit_box_boundary(
@@ -565,15 +721,16 @@ int commit_generic_scene()
 
     bool hasBenderBox = false;
     bool hasSampledBox = false;
+    const bool hasBenderMesh = !g_pending_meshes.empty();
     for (const PendingUnitBox& box : g_pending_boxes)
     {
         hasBenderBox = hasBenderBox || box.useBender;
         hasSampledBox = hasSampledBox || !box.useBender;
     }
-    if (hasBenderBox && hasSampledBox)
+    if ((hasBenderBox || hasBenderMesh) && hasSampledBox)
         return -14;
 
-    if (hasBenderBox)
+    if (hasBenderBox || hasBenderMesh)
         g_sim->setBoundaryHandlingMethod(BoundaryHandlingMethods::Bender2019);
     else if (hasSampledBox)
         g_sim->setBoundaryHandlingMethod(BoundaryHandlingMethods::Akinci2012);
@@ -752,10 +909,15 @@ int commit_generic_scene()
 
     g_sim->setSimulationInitialized(1);
 
-    if (hasBenderBox)
+    if (hasBenderBox || hasBenderMesh)
     {
         for (const PendingUnitBox& box : g_pending_boxes)
-            add_bender_box_boundary(box);
+        {
+            if (box.useBender)
+                add_bender_box_boundary(box);
+        }
+        for (const PendingMeshBoundary& boundary : g_pending_meshes)
+            add_bender_mesh_boundary(boundary);
     }
     else if (hasSampledBox)
     {
@@ -1308,6 +1470,63 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender_file(
     box.mapFile = mapFile;
     g_pending_boxes.push_back(box);
     return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_mesh_bender_obj(
+    const float tx, const float ty, const float tz,
+    const float sx, const float sy, const float sz,
+    const char* meshFile,
+    const unsigned int resolutionX,
+    const unsigned int resolutionY,
+    const unsigned int resolutionZ,
+    const int mapInvert,
+    const float mapThickness)
+{
+    if (
+        !g_builder_active ||
+        meshFile == nullptr ||
+        meshFile[0] == '\0' ||
+        resolutionX < 2u ||
+        resolutionY < 2u ||
+        resolutionZ < 2u)
+        return 0;
+
+    PendingMeshBoundary boundary;
+    boundary.translation = Vector3r(tx, ty, tz);
+    boundary.scale = Vector3r(sx, sy, sz);
+    boundary.meshFile = meshFile;
+    boundary.mapFile.clear();
+    boundary.resolutionX = resolutionX;
+    boundary.resolutionY = resolutionY;
+    boundary.resolutionZ = resolutionZ;
+    boundary.mapInvert = mapInvert != 0;
+    boundary.mapThickness = static_cast<Real>(mapThickness);
+    g_pending_meshes.push_back(boundary);
+    return static_cast<int>(g_pending_meshes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_mesh_bender_file(
+    const float tx, const float ty, const float tz,
+    const char* mapFile)
+{
+    if (
+        !g_builder_active ||
+        mapFile == nullptr ||
+        mapFile[0] == '\0')
+        return 0;
+
+    PendingMeshBoundary boundary;
+    boundary.translation = Vector3r(tx, ty, tz);
+    boundary.scale = Vector3r::Ones();
+    boundary.meshFile.clear();
+    boundary.mapFile = mapFile;
+    boundary.resolutionX = 0u;
+    boundary.resolutionY = 0u;
+    boundary.resolutionZ = 0u;
+    boundary.mapInvert = false;
+    boundary.mapThickness = static_cast<Real>(0.0);
+    g_pending_meshes.push_back(boundary);
+    return static_cast<int>(g_pending_meshes.size());
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_save_last_bender_map(const char* mapFile)

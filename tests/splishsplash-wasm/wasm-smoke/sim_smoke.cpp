@@ -72,6 +72,18 @@ int sph_scene_add_unit_box_bender_file(
     float tx, float ty, float tz,
     float sx, float sy, float sz,
     const char* mapFile);
+int sph_scene_add_mesh_bender_obj(
+    float tx, float ty, float tz,
+    float sx, float sy, float sz,
+    const char* meshFile,
+    unsigned int resolutionX,
+    unsigned int resolutionY,
+    unsigned int resolutionZ,
+    int mapInvert,
+    float mapThickness);
+int sph_scene_add_mesh_bender_file(
+    float tx, float ty, float tz,
+    const char* mapFile);
 int sph_save_last_bender_map(const char* mapFile);
 int sph_scene_commit();
 int sph_step(int steps);
@@ -1340,6 +1352,94 @@ int main()
                   << " boundaryMethod=" << sph_boundary_handling_method()
                   << " surfaceMethod=" << surfaceMethod
                   << " missingParams=" << missing
+                  << " steps=" << steps
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.02f, 4, 2))
+            return 160;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.05f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_set_standard_viscosity(0.01f);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -0.4f, 1.04f, -0.4f,
+             0.4f, 1.44f,  0.4f,
+             0.0f, 0.0f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+
+        const char* mapFile = "sphere-s1-r20-i0-t0.cdm";
+        const bool cachedMap = std::ifstream(mapFile, std::ios::binary).good();
+        const int meshes = cachedMap
+            ? sph_scene_add_mesh_bender_file(
+                0.0f, 0.0f, 0.0f,
+                mapFile)
+            : sph_scene_add_mesh_bender_obj(
+                0.0f, 0.0f, 0.0f,
+                1.0f, 1.0f, 1.0f,
+                "sphere.obj",
+                20u, 20u, 20u,
+                0, 0.0f);
+
+        const int count = sph_scene_commit();
+        if (!cachedMap && !sph_save_last_bender_map(mapFile))
+        {
+            std::cerr << "SPLISHSPLASH_MESH_BENDER_WASM_FAIL save\n";
+            sph_destroy();
+            return 161;
+        }
+
+        const float mapMs = sph_last_bender_map_build_ms();
+        const int steps = sph_step(1);
+        const float minY = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            blocks == 1 &&
+            meshes == 1 &&
+            count == 4851 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 &&
+            sph_simulation_method() == 4 &&
+            sph_solver_iterations() >= 2 &&
+            sph_all_finite() &&
+            std::isfinite(minY) &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_MESH_BENDER_WASM_FAIL"
+                      << " particles=" << count
+                      << " boundaryModels=" << sph_boundary_model_count()
+                      << " boundaryMethod=" << sph_boundary_handling_method()
+                      << " mapSource=" << (cachedMap ? "cache" : "generated")
+                      << " mapMs=" << mapMs
+                      << " steps=" << steps
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 162;
+        }
+
+        std::cout << "SPLISHSPLASH_MESH_BENDER_WASM_OK"
+                  << " particles=" << count
+                  << " boundaryModels=" << sph_boundary_model_count()
+                  << " boundaryMethod=" << sph_boundary_handling_method()
+                  << " mesh=sphere.obj"
+                  << " mapResolution=20x20x20"
+                  << " mapSource=" << (cachedMap ? "cache" : "generated")
+                  << " mapMs=" << mapMs
                   << " steps=" << steps
                   << " minY=" << minY
                   << " time=" << time << "\n";

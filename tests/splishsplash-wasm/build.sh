@@ -15,6 +15,7 @@ UPSTREAM_TAG="2.18.1"
 rm -rf "$OUT_DIR" "$SITE_VENDOR_DIR"
 MAP_DIR="$WORK_ROOT/maps"
 mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR" "$SITE_MAP_DIR" "$MAP_DIR"
+cp "$TEST_DIR/wasm-smoke/assets/sphere.obj" "$MAP_DIR/sphere.obj"
 
 echo "== toolchain =="
 EMCC_VERSION="$(emcc --version | head -1)"
