@@ -37,6 +37,12 @@ int sph_scene_set_peer2015_viscosity(
     float viscosity,
     unsigned int maxIterations,
     float maxError);
+int sph_scene_set_peer2016_viscosity(
+    float viscosity,
+    unsigned int maxIterationsV,
+    float maxErrorV,
+    unsigned int maxIterationsOmega,
+    float maxErrorOmega);
 int sph_scene_add_fluid_block(
     float sx, float sy, float sz,
     float ex, float ey, float ez,
@@ -857,6 +863,85 @@ int main()
                   << " mapResolution=20x20x20"
                   << " mapSource=" << (cachedMap ? "cache" : "generated")
                   << " mapMs=" << mapMs
+                  << " centerY0=" << centerY0
+                  << " centerY1=" << centerY1
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.025f, 3, 2))
+            return 110;
+
+        sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
+        sph_scene_set_timing(0, 0.5f, 0.005f, 0.001f);
+        sph_scene_set_iisph(2u, 100u, 0.01f);
+        sph_scene_set_material(1000.0f, 4u);
+        sph_scene_set_peer2016_viscosity(0.05f, 200u, 0.08f, 200u, 0.01f);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -0.1f, 0.01f, -0.4f,
+             0.1f, 6.0f,   0.4f,
+             0.0f, 0.1f,   0.0f,
+             0.75f, 1.0f, 0.75f,
+             0.0f, 0.0f, 0.0f,
+             0);
+
+        const char* mapFile = "unitbox-3x0p5x3-r20-i0-t0.cdm";
+        const int boxes = sph_scene_add_unit_box_bender_file(
+            0.0f, -0.25f, 0.0f,
+            3.0f, 0.5f, 3.0f,
+            mapFile);
+
+        const int count = sph_scene_commit();
+        const float centerY0 = sph_center_y();
+        const int steps = sph_step(1);
+        const int method = sph_simulation_method();
+        const int iterations = sph_solver_iterations();
+        const float centerY1 = sph_center_y();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            blocks == 1 &&
+            boxes == 1 &&
+            count == 6240 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 &&
+            method == 3 &&
+            iterations >= 2 &&
+            sph_all_finite() &&
+            std::isfinite(centerY1) &&
+            std::isfinite(minY) &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_IISPH_PEER2016_WASM_FAIL"
+                      << " particles=" << count
+                      << " boundaryModels=" << sph_boundary_model_count()
+                      << " steps=" << steps
+                      << " method=" << method
+                      << " iterations=" << iterations
+                      << " centerY0=" << centerY0
+                      << " centerY1=" << centerY1
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 111;
+        }
+
+        std::cout << "SPLISHSPLASH_GENERIC_IISPH_PEER2016_WASM_OK"
+                  << " particles=" << count
+                  << " boundaryModels=" << sph_boundary_model_count()
+                  << " steps=" << steps
+                  << " method=" << method
+                  << " iterations=" << iterations
                   << " centerY0=" << centerY0
                   << " centerY1=" << centerY1
                   << " minY=" << minY

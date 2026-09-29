@@ -57,6 +57,11 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
     peer2015Viscosity: numberOr(material["Peer et al. 2015"]?.viscosity, 0.01),
     peer2015MaxIterations: numberOr(material["Peer et al. 2015"]?.viscoMaxIter, 50),
     peer2015MaxError: numberOr(material["Peer et al. 2015"]?.viscoMaxError, 0.01),
+    peer2016Viscosity: numberOr(material["Peer et al. 2016"]?.viscosity, 0.01),
+    peer2016MaxIterationsV: numberOr(material["Peer et al. 2016"]?.viscoMaxIter, 50),
+    peer2016MaxErrorV: numberOr(material["Peer et al. 2016"]?.viscoMaxError, 0.01),
+    peer2016MaxIterationsOmega: numberOr(material["Peer et al. 2016"]?.viscoMaxIterOmega, 50),
+    peer2016MaxErrorOmega: numberOr(material["Peer et al. 2016"]?.viscoMaxErrorOmega, 0.01),
     raw: structuredClone(material),
   }));
 

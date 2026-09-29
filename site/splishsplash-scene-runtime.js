@@ -134,6 +134,17 @@ export function buildSceneFromIR(Module, ir) {
       ),
       "sph_scene_set_peer2015_viscosity",
     );
+  } else if (material.viscosityMethod === 4) {
+    requireCall(
+      Module._sph_scene_set_peer2016_viscosity(
+        material.peer2016Viscosity,
+        material.peer2016MaxIterationsV,
+        material.peer2016MaxErrorV,
+        material.peer2016MaxIterationsOmega,
+        material.peer2016MaxErrorOmega,
+      ),
+      "sph_scene_set_peer2016_viscosity",
+    );
   }
 
   for (const block of ir.fluidBlocks) {

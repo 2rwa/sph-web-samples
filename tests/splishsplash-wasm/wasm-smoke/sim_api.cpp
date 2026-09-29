@@ -10,6 +10,7 @@
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
@@ -106,6 +107,11 @@ Real g_builder_iisph_max_error = static_cast<Real>(0.01);
 Real g_builder_peer2015_viscosity = static_cast<Real>(0.01);
 unsigned int g_builder_peer2015_max_iterations = 50u;
 Real g_builder_peer2015_max_error = static_cast<Real>(0.01);
+Real g_builder_peer2016_viscosity = static_cast<Real>(0.01);
+unsigned int g_builder_peer2016_max_iterations_v = 50u;
+Real g_builder_peer2016_max_error_v = static_cast<Real>(0.01);
+unsigned int g_builder_peer2016_max_iterations_omega = 50u;
+Real g_builder_peer2016_max_error_omega = static_cast<Real>(0.01);
 bool g_builder_active = false;
 
 void reset_builder()
@@ -146,6 +152,11 @@ void reset_builder()
     g_builder_peer2015_viscosity = static_cast<Real>(0.01);
     g_builder_peer2015_max_iterations = 50u;
     g_builder_peer2015_max_error = static_cast<Real>(0.01);
+    g_builder_peer2016_viscosity = static_cast<Real>(0.01);
+    g_builder_peer2016_max_iterations_v = 50u;
+    g_builder_peer2016_max_error_v = static_cast<Real>(0.01);
+    g_builder_peer2016_max_iterations_omega = 50u;
+    g_builder_peer2016_max_error_omega = static_cast<Real>(0.01);
     g_builder_active = false;
 }
 
@@ -537,6 +548,26 @@ int commit_generic_scene()
         g_model->getViscosityBase()->setValue(
             Viscosity_Peer2015::MAX_ERROR,
             g_builder_peer2015_max_error);
+    }
+    else if (
+        g_builder_viscosity_method == 4u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2016::VISCOSITY_COEFFICIENT,
+            g_builder_peer2016_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2016::MAX_ITERATIONS_V,
+            g_builder_peer2016_max_iterations_v);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2016::MAX_ERROR_V,
+            g_builder_peer2016_max_error_v);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2016::MAX_ITERATIONS_OMEGA,
+            g_builder_peer2016_max_iterations_omega);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2016::MAX_ERROR_OMEGA,
+            g_builder_peer2016_max_error_omega);
     }
 
     g_sim->setSimulationMethod(g_builder_simulation_method);
@@ -934,6 +965,30 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_peer2015_viscosity(
     g_builder_peer2015_viscosity = static_cast<Real>(viscosity);
     g_builder_peer2015_max_iterations = maxIterations;
     g_builder_peer2015_max_error = static_cast<Real>(maxError);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_peer2016_viscosity(
+    const float viscosity,
+    const unsigned int maxIterationsV,
+    const float maxErrorV,
+    const unsigned int maxIterationsOmega,
+    const float maxErrorOmega)
+{
+    if (
+        !g_builder_active ||
+        viscosity < 0.0f ||
+        maxIterationsV < 1u ||
+        maxErrorV <= 0.0f ||
+        maxIterationsOmega < 1u ||
+        maxErrorOmega <= 0.0f)
+        return 0;
+
+    g_builder_peer2016_viscosity = static_cast<Real>(viscosity);
+    g_builder_peer2016_max_iterations_v = maxIterationsV;
+    g_builder_peer2016_max_error_v = static_cast<Real>(maxErrorV);
+    g_builder_peer2016_max_iterations_omega = maxIterationsOmega;
+    g_builder_peer2016_max_error_omega = static_cast<Real>(maxErrorOmega);
     return 1;
 }
 
