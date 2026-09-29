@@ -11,6 +11,7 @@ const SCENES = {
   "DoubleDamBreak.json": { method: "DFSPH", particles: 7200, boundary: 23066 },
   "CompressibleSPH_ICSPH.json": { method: "ICSPH", particles: 9826, boundary: 23066 },
   "CompressibleSPH_PF.json": { method: "PF", particles: 9826, boundary: 23066 },
+  "BucklingModel_Peer2015.json": { method: "IISPH", particles: 6240, boundary: 0 },
 };
 
 const canvas = document.querySelector("#view");

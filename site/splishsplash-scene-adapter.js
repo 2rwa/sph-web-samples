@@ -54,6 +54,9 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
     density0: numberOr(material.density0, 1000),
     viscosityMethod: numberOr(material.viscosityMethod, 0),
     standardViscosity: numberOr(material["Standard viscosity"]?.viscosity, 0),
+    peer2015Viscosity: numberOr(material["Peer et al. 2015"]?.viscosity, 0.01),
+    peer2015MaxIterations: numberOr(material["Peer et al. 2015"]?.viscoMaxIter, 50),
+    peer2015MaxError: numberOr(material["Peer et al. 2015"]?.viscoMaxError, 0.01),
     raw: structuredClone(material),
   }));
 
@@ -99,7 +102,8 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
     simulationMethod === "WCSPH" ||
     simulationMethod === "DFSPH" ||
     simulationMethod === "ICSPH" ||
-    simulationMethod === "PF";
+    simulationMethod === "PF" ||
+    simulationMethod === "IISPH";
 
   if (!coreMethodKnown) {
     bridgeRequirements.push(`Unknown simulationMethod ${simulationMethodId}`);
@@ -108,7 +112,7 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
   }
 
   if (boundaryMethod === "Bender2019") {
-    bridgeRequirements.push("Bender2019 rigid-boundary volume-map bridge is not exposed by the current browser ABI");
+    bridgeRequirements.push("Bender2019 requires a matching precomputed Discregrid .cdm map for each static UnitBox");
   } else if (boundaryMethod === "Koschier2017") {
     bridgeRequirements.push("Koschier2017 density-map bridge is not exposed by the current browser ABI");
   } else if (boundaryMethod !== "Akinci2012") {
@@ -116,8 +120,8 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
   }
 
   for (const body of rigidBodies) {
-    if (body.geometryFile?.endsWith("UnitBox.obj") && body.isWall && !body.isDynamic) {
-      bridgeRequirements.push("Static UnitBox wall needs browser boundary construction from translation/rotation/scale");
+    if (body.geometryFile?.endsWith("UnitBox.obj") && !body.isDynamic && Math.abs(body.rotationAngle) <= 1e-8) {
+      bridgeRequirements.push("Static UnitBox is supported through a precomputed native Bender2019 volume map");
     } else {
       bridgeRequirements.push(`Rigid body ${body.geometryFile ?? body.index} needs a browser geometry/boundary bridge`);
     }
@@ -128,6 +132,7 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
     simulationMethod === "DFSPH" ? structuredClone(config.DFSPH ?? {}) :
     simulationMethod === "ICSPH" ? structuredClone(config.ICSPH ?? {}) :
     simulationMethod === "PF" ? structuredClone(config["Projective Fluids"] ?? {}) :
+    simulationMethod === "IISPH" ? structuredClone(config.IISPH ?? {}) :
     {};
 
   const uniqueBridgeRequirements = [...new Set(bridgeRequirements)];

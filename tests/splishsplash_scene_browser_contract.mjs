@@ -10,6 +10,7 @@ assert.match(page, /DamBreakModel\.json/);
 assert.match(page, /DoubleDamBreak\.json/);
 assert.match(page, /CompressibleSPH_ICSPH\.json/);
 assert.match(page, /CompressibleSPH_PF\.json/);
+assert.match(page, /BucklingModel_Peer2015\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
 assert.match(app, /prepareBender2019Maps/);
 assert.match(app, /buildSceneFromIRWithPreparedBender/);
@@ -20,3 +21,7 @@ console.log("SPlisHSPlasH scene browser contract ok");
 const runtime = readFileSync("site/splishsplash-scene-runtime.js", "utf8");
 assert.match(runtime, /sph_scene_add_unit_box_bender_file/);
 assert.match(runtime, /Bender2019 UnitBox volume map loaded from precomputed Discregrid \.cdm/);
+
+assert.match(runtime, /sph_scene_set_iisph/);
+assert.match(runtime, /sph_scene_set_peer2015_viscosity/);
+assert.match(runtime, /unitbox-3x0p5x3-r20-i0-t0\.cdm/);

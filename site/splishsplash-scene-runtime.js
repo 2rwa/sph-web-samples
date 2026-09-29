@@ -13,8 +13,8 @@ function requireCall(result, name) {
 
 export function buildSceneFromIR(Module, ir) {
   const simulationMethod = ir.configuration.simulationMethod.name;
-  if (!["WCSPH", "DFSPH", "ICSPH", "PF"].includes(simulationMethod)) {
-    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH/ICSPH/PF only; got ${simulationMethod}`);
+  if (!["WCSPH", "DFSPH", "ICSPH", "PF", "IISPH"].includes(simulationMethod)) {
+    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH/ICSPH/PF/IISPH only; got ${simulationMethod}`);
   }
 
   const unsupportedBodies = ir.rigidBodies.filter((body) =>
@@ -98,6 +98,15 @@ export function buildSceneFromIR(Module, ir) {
       ),
       "sph_scene_set_pf",
     );
+  } else if (simulationMethod === "IISPH") {
+    requireCall(
+      Module._sph_scene_set_iisph(
+        Number(ir.solver.parameters.minIterations ?? 2),
+        Number(ir.solver.parameters.maxIterations ?? 100),
+        Number(ir.solver.parameters.maxError ?? 0.01),
+      ),
+      "sph_scene_set_iisph",
+    );
   }
 
   const material = ir.materials[0] ?? {
@@ -115,6 +124,15 @@ export function buildSceneFromIR(Module, ir) {
     requireCall(
       Module._sph_scene_set_standard_viscosity(material.standardViscosity),
       "sph_scene_set_standard_viscosity",
+    );
+  } else if (material.viscosityMethod === 3) {
+    requireCall(
+      Module._sph_scene_set_peer2015_viscosity(
+        material.peer2015Viscosity,
+        material.peer2015MaxIterations,
+        material.peer2015MaxError,
+      ),
+      "sph_scene_set_peer2015_viscosity",
     );
   }
 
@@ -195,6 +213,14 @@ function benderMapKey(body) {
   ) {
     return "unitbox-4x3x1p5-r40x30x15-i1-t0.cdm";
   }
+  if (
+    s[0] === 3 && s[1] === 0.5 && s[2] === 3 &&
+    r[0] === 20 && r[1] === 20 && r[2] === 20 &&
+    body.mapInvert === false &&
+    Number(body.mapThickness) === 0
+  ) {
+    return "unitbox-3x0p5x3-r20-i0-t0.cdm";
+  }
   return null;
 }
 
@@ -238,8 +264,8 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
   }
 
   const simulationMethod = ir.configuration.simulationMethod.name;
-  if (!["WCSPH", "DFSPH", "ICSPH", "PF"].includes(simulationMethod)) {
-    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH/ICSPH/PF only; got ${simulationMethod}`);
+  if (!["WCSPH", "DFSPH", "ICSPH", "PF", "IISPH"].includes(simulationMethod)) {
+    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH/ICSPH/PF/IISPH only; got ${simulationMethod}`);
   }
 
   requireCall(
