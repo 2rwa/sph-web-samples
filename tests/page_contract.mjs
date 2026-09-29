@@ -6,10 +6,12 @@ const sample = readFileSync("site/samples/salva-canvas/index.html", "utf8");
 const benchmark = readFileSync("site/samples/salva-benchmark/index.html", "utf8");
 const interactive = readFileSync("site/samples/salva-interactive-obstacles/index.html", "utf8");
 const sample3d = readFileSync("site/samples/salva-3d-canvas/index.html", "utf8");
+const webgl3d = readFileSync("site/samples/salva-3d-webgl2/index.html", "utf8");
 const app = readFileSync("site/app.js", "utf8");
 const benchmarkApp = readFileSync("site/benchmark.js", "utf8");
 const interactiveApp = readFileSync("site/interactive-obstacles.js", "utf8");
 const app3d = readFileSync("site/3d-canvas.js", "utf8");
+const webgl3dApp = readFileSync("site/3d-webgl2.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
 const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
 const official3dApp = readFileSync("site/official-examples3d.js", "utf8");
@@ -43,6 +45,7 @@ assert.match(top, /href="\.\/samples\/salva-canvas\/"/);
 assert.match(top, /href="\.\/samples\/salva-benchmark\/"/);
 assert.match(top, /href="\.\/samples\/salva-interactive-obstacles\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-canvas\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-basic\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-custom-forces\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-elasticity\/"/);
@@ -111,6 +114,22 @@ assert.match(app3d, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.04", impo
 assert.match(app3d, /projected\.sort/);
 assert.match(app3d, /sim\.step\(fixedDt\)/);
 
+assert.match(webgl3d, /<canvas\s+id="view"/);
+assert.match(webgl3d, /WebGL2/);
+assert.match(webgl3d, /3d-webgl2\.js\?v=1\.40/);
+assert.match(webgl3d, /Physics ms/);
+assert.match(webgl3d, /Render ms/);
+assert.match(webgl3dApp, /OfficialExample3dSimulation/);
+assert.match(webgl3dApp, /new OfficialExample3dSimulation\("basic"\)/);
+assert.match(webgl3dApp, /getContext\("webgl2"/);
+assert.match(webgl3dApp, /gl\.enable\(gl\.DEPTH_TEST\)/);
+assert.match(webgl3dApp, /gl\.drawArrays\(gl\.POINTS/);
+assert.match(webgl3dApp, /gl\.bufferData/);
+assert.match(webgl3dApp, /gl_PointCoord/);
+assert.match(webgl3dApp, /sph_web_samples\.js\?v=1\.40/);
+assert.match(webgl3dApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.40", import\.meta\.url\)/);
+assert.doesNotMatch(webgl3dApp, /projected\.sort/);
+
 for (const [mode, html] of Object.entries(officialPages)) {
   assert.match(html, new RegExp(`data-example="${mode}"`));
   assert.match(html, /<canvas\s+id="view"/);
@@ -168,4 +187,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + twenty samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + twenty-one samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
