@@ -60,9 +60,9 @@ elif kind == "discregrid":
     path = src / "discregrid" / "CMakeLists.txt"
     start_marker = "# OpenMP support."
     end_marker = "# Eigen library."
-elif kind == "pbd":
-    path = src / "CMake" / "Common.cmake"
-    text = path.read_text()
+elif kind == "pbd-wasm-v2":
+    common = src / "CMake" / "Common.cmake"
+    text = common.read_text()
     marker = "\\tif (CI_BUILD)\\n"
     replacement = (
         "\\tif (EMSCRIPTEN)\\n"
@@ -71,13 +71,41 @@ elif kind == "pbd":
         "\\t\\tset(CMAKE_CXX_FLAGS_RELWITHDEBINFO \\"-O3 -DNDEBUG\\")\\n"
         "\\telseif (CI_BUILD)\\n"
     )
-    if replacement in text:
-        print(f"Emscripten release flags already patched in {path}")
-        raise SystemExit(0)
-    if text.count(marker) != 1:
-        raise RuntimeError(f"unexpected PBD Common.cmake CI_BUILD layout: {text.count(marker)} matches")
-    path.write_text(text.replace(marker, replacement, 1))
-    print(f"Patched Emscripten release flags in {path}")
+    if replacement not in text:
+        if text.count(marker) != 1:
+            raise RuntimeError(
+                f"unexpected PBD Common.cmake CI_BUILD layout: {text.count(marker)} matches"
+            )
+        common.write_text(text.replace(marker, replacement, 1))
+
+    omp_compat = (
+        "#ifdef _OPENMP\\n"
+        "#include \\"omp.h\\"\\n"
+        "#else\\n"
+        "#ifndef omp_get_max_threads\\n"
+        "#define omp_get_max_threads() 1\\n"
+        "#endif\\n"
+        "#ifndef omp_get_thread_num\\n"
+        "#define omp_get_thread_num() 0\\n"
+        "#endif\\n"
+        "#endif"
+    )
+    for relative in (
+        "Simulation/kdTree.inl",
+        "Simulation/DistanceFieldCollisionDetection.cpp",
+    ):
+        path = src / relative
+        source = path.read_text()
+        if omp_compat in source:
+            continue
+        needle = '#include "omp.h"'
+        if source.count(needle) != 1:
+            raise RuntimeError(
+                f"unexpected PBD omp include layout in {relative}: {source.count(needle)} matches"
+            )
+        path.write_text(source.replace(needle, omp_compat, 1))
+
+    print(f"Patched Emscripten release/OpenMP compatibility in {src}")
     raise SystemExit(0)
 else:
     raise SystemExit(f"unknown dependency kind: {kind}")
@@ -154,6 +182,6 @@ add_external_patch(
 add_external_patch(
     "CMake/SetUpExternalProjects.cmake",
     "10a70bc146a97873dc3c8fef372f5217e010542e",
-    "pbd",
+    "pbd-wasm-v2",
 )
 print("Applied Emscripten compatibility patches.")
