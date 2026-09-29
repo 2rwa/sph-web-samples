@@ -39,6 +39,36 @@ fn interactive_obstacles_reject_degenerate_shapes() {
 }
 
 #[test]
+fn resetting_particles_preserves_user_obstacles() {
+    let mut sim = InteractiveSimulation::new();
+
+    assert!(sim.add_circle_obstacle(0.0, -0.2, 0.15));
+    assert!(sim.add_line_obstacle(-0.7, 0.2, 0.7, 0.2));
+    let obstacle_points_before = sim.obstacle_points();
+
+    assert_eq!(sim.reset_particles(3_000), 3_000);
+    assert_eq!(sim.particle_count(), 3_000);
+    assert_eq!(sim.positions().len(), 6_000);
+    assert_eq!(sim.obstacle_count(), 2);
+    assert_eq!(sim.obstacle_points(), obstacle_points_before);
+
+    assert_eq!(sim.reset_particles(5_000), 5_000);
+    assert_eq!(sim.particle_count(), 5_000);
+    assert_eq!(sim.obstacle_count(), 2);
+}
+
+#[test]
+fn resetting_particles_clamps_to_supported_range() {
+    let mut sim = InteractiveSimulation::new();
+
+    assert_eq!(sim.reset_particles(100), 1_000);
+    assert_eq!(sim.particle_count(), 1_000);
+
+    assert_eq!(sim.reset_particles(99_999), 5_000);
+    assert_eq!(sim.particle_count(), 5_000);
+}
+
+#[test]
 fn interactive_sample_remains_finite_after_obstacles_and_steps() {
     let mut sim = InteractiveSimulation::new();
     assert!(sim.add_circle_obstacle(0.0, -0.2, 0.15));
