@@ -29,6 +29,8 @@ const webgpuHeightfield = readFileSync("site/samples/salva-3d-webgpu-heightfield
 const webgpuHeightfieldApp = readFileSync("site/3d-webgpu-heightfield.js", "utf8");
 const webgpuBasic = readFileSync("site/samples/salva-3d-webgpu-basic/index.html", "utf8");
 const webgpuBasicApp = readFileSync("site/3d-webgpu-basic.js", "utf8");
+const webgpuCustomForces = readFileSync("site/samples/salva-3d-webgpu-custom-forces/index.html", "utf8");
+const webgpuCustomForcesApp = readFileSync("site/3d-webgpu-custom-forces.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
 const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
 const official3dApp = readFileSync("site/official-examples3d.js", "utf8");
@@ -89,6 +91,7 @@ assert.match(top, /href="\.\/samples\/salva-3d-webgpu-faucet\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-elasticity\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-heightfield\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-basic\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgpu-custom-forces\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -288,6 +291,29 @@ assert.match(webgpuBasicApp, /sph_web_samples\.js\?v=1\.90/);
 assert.match(webgpuBasicApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.90", import\.meta\.url\)/);
 assert.doesNotMatch(webgpuBasicApp, /t\s*\+=\s*density/);
 
+assert.match(webgpuCustomForces, /data-webgpu-raymarch="custom-forces"/);
+assert.match(webgpuCustomForces, /analytic force-field volume/);
+assert.match(webgpuCustomForces, /56³ fluid density grid/);
+assert.match(webgpuCustomForces, /3d-webgpu-custom-forces\.js\?v=2\.00/);
+assert.match(webgpuCustomForcesApp, /new OfficialExample3dSimulation\("custom-forces"\)/);
+assert.match(webgpuCustomForcesApp, /array<atomic<u32>>/);
+assert.match(webgpuCustomForcesApp, /atomicAdd/);
+assert.match(webgpuCustomForcesApp, /texture_storage_3d<r32float, write>/);
+assert.match(webgpuCustomForcesApp, /texture_3d<f32>/);
+assert.match(webgpuCustomForcesApp, /forceFieldVector/);
+assert.match(webgpuCustomForcesApp, /vec3f\(1\.0,0\.0,0\.0\)/);
+assert.match(webgpuCustomForcesApp, /vec3f\(-1\.0,0\.0,0\.0\)/);
+assert.match(webgpuCustomForcesApp, /forceContribution/);
+assert.match(webgpuCustomForcesApp, /marchScene/);
+assert.match(webgpuCustomForcesApp, /forceGlow/);
+assert.match(webgpuCustomForcesApp, /GPUTextureUsage\.STORAGE_BINDING/);
+assert.match(webgpuCustomForcesApp, /getCompilationInfo/);
+assert.match(webgpuCustomForcesApp, /pushErrorScope\("validation"\)/);
+assert.match(webgpuCustomForcesApp, /queue\.onSubmittedWorkDone\(\)/);
+assert.match(webgpuCustomForcesApp, /sph_web_samples\.js\?v=2\.00/);
+assert.match(webgpuCustomForcesApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=2\.00", import\.meta\.url\)/);
+assert.doesNotMatch(webgpuCustomForcesApp, /t\s*\+=\s*density/);
+
 for (const [mode, html] of Object.entries(officialPages)) {
   assert.match(html, new RegExp(`data-example="${mode}"`));
   assert.match(html, /<canvas\s+id="view"/);
@@ -345,4 +371,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + thirty-one samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + thirty-two samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
