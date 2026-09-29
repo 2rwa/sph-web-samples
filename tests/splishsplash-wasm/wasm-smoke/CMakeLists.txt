@@ -76,3 +76,24 @@ target_link_options(splishsplash_pbd_coupling_smoke PRIVATE
     "-sNODERAWFS=1"
 )
 set_target_properties(splishsplash_pbd_coupling_smoke PROPERTIES SUFFIX ".js")
+
+add_executable(splishsplash_pbd_coupling_sweep EXCLUDE_FROM_ALL
+    sim_api.cpp
+    pbd_coupling_sweep.cpp
+)
+add_dependencies(splishsplash_pbd_coupling_sweep Ext_PBD)
+target_compile_definitions(splishsplash_pbd_coupling_sweep PRIVATE SPLISHSPLASH_ENABLE_PBD=1)
+target_link_libraries(splishsplash_pbd_coupling_sweep PRIVATE
+    SPlisHSPlasH
+    ${PBD_LIBRARIES}
+    PBD_includes
+)
+target_link_options(splishsplash_pbd_coupling_sweep PRIVATE
+    "-sENVIRONMENT=node"
+    "-sEXIT_RUNTIME=1"
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sWASM_ASYNC_COMPILATION=0"
+    "-sASSERTIONS=1"
+    "-sNODERAWFS=1"
+)
+set_target_properties(splishsplash_pbd_coupling_sweep PROPERTIES SUFFIX ".js")

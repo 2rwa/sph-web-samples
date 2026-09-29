@@ -1670,6 +1670,65 @@ EMSCRIPTEN_KEEPALIVE int sph_reset()
 }
 
 #ifdef SPLISHSPLASH_ENABLE_PBD
+EMSCRIPTEN_KEEPALIVE int sph_bender_promote_dynamic_pbd_box(
+    const float mass,
+    const float sx,
+    const float sy,
+    const float sz)
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject() ||
+        !(mass > 0.0f) || !(sx > 0.0f) || !(sy > 0.0f) || !(sz > 0.0f) ||
+        g_pbd_body != nullptr)
+        return 0;
+
+    RigidBodyObject* old = g_boundary_bender->getRigidBodyObject();
+    const Vector3r position = old->getPosition();
+    const Vector3r velocity = old->getVelocity();
+    const Quaternionr rotation = old->getRotation();
+    const Vector3r angularVelocity = old->getAngularVelocity();
+
+    const Real m = static_cast<Real>(mass);
+    const Real x = static_cast<Real>(sx);
+    const Real y = static_cast<Real>(sy);
+    const Real z = static_cast<Real>(sz);
+    const Real oneTwelfth = static_cast<Real>(1.0 / 12.0);
+    const Vector3r inertia(
+        oneTwelfth * m * (y * y + z * z),
+        oneTwelfth * m * (x * x + z * z),
+        oneTwelfth * m * (x * x + y * y));
+
+    PBD::RigidBody* body = new PBD::RigidBody();
+    body->setMass(m);
+    body->setPosition(position);
+    body->setPosition0(position);
+    body->setOldPosition(position);
+    body->setLastPosition(position);
+    body->setVelocity(velocity);
+    body->setVelocity0(velocity);
+    body->setAcceleration(Vector3r::Zero());
+    body->setInertiaTensor(inertia);
+    body->setRotation(rotation);
+    body->setRotation0(rotation);
+    body->setOldRotation(rotation);
+    body->setLastRotation(rotation);
+    body->setRotationMAT(Quaternionr::Identity());
+    body->setRotationInitial(Quaternionr::Identity());
+    body->setPositionInitial_MAT(Vector3r::Zero());
+    body->setAngularVelocity(angularVelocity);
+    body->setAngularVelocity0(angularVelocity);
+    body->setTorque(Vector3r::Zero());
+    body->rotationUpdated();
+
+    PBDRigidBody* bridge = new PBDRigidBody(body);
+    g_boundary_bender->initModel(bridge);
+    delete old;
+
+    g_pbd_body = body;
+    g_pbd_max_boundary_force = 0.0;
+    g_pbd_last_boundary_force = 0.0;
+    return bridge->isDynamic() ? 1 : 0;
+}
+
 EMSCRIPTEN_KEEPALIVE int sph_bender_promote_dynamic_pbd(const float mass)
 {
     if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject() ||
@@ -1772,6 +1831,16 @@ EMSCRIPTEN_KEEPALIVE float sph_pbd_body_position_y()
 EMSCRIPTEN_KEEPALIVE float sph_pbd_body_velocity_y()
 {
     return g_pbd_body ? static_cast<float>(g_pbd_body->getVelocity()[1]) : 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_speed()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getVelocity().norm()) : 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_angular_speed()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getAngularVelocity().norm()) : 0.0f;
 }
 
 EMSCRIPTEN_KEEPALIVE float sph_pbd_max_boundary_force()

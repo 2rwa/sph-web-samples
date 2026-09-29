@@ -70,3 +70,16 @@ echo "pbd_coupling_wasm_bytes=$(wc -c < "${PBD_COUPLING_JS%.js}.wasm")" | tee -a
   /usr/bin/node "$PBD_COUPLING_JS"
 ) | tee "$OUT_DIR/coupling-runtime.txt"
 grep -q 'SPLISHSPLASH_PBD_COUPLING_WASM_OK' "$OUT_DIR/coupling-runtime.txt"
+
+echo "== sweep stable SPH -> PBD coupling parameters =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_coupling_sweep --parallel 2
+PBD_SWEEP_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_coupling_sweep.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_SWEEP_JS" || ! -s "$PBD_SWEEP_JS" || ! -s "${PBD_SWEEP_JS%.js}.wasm" ]]; then
+  echo "PBD coupling sweep output not found" >&2
+  exit 23
+fi
+(
+  cd "$WORK_ROOT/maps"
+  /usr/bin/node "$PBD_SWEEP_JS"
+) | tee "$OUT_DIR/coupling-sweep.txt"
+grep -q 'SPLISHSPLASH_PBD_SWEEP_OK' "$OUT_DIR/coupling-sweep.txt"
