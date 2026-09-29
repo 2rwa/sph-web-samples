@@ -154,6 +154,10 @@ Each method gets a small Node/WASM regression before being exposed in the browse
 
 ## Phase 5 — browser Demo shell
 
+Current first pass: a shared scene browser switches the three validated upstream fixtures in one Emscripten module. CI rebuilds all three scenes sequentially through the generic ABI.
+
+
+
 Once scene construction is generic:
 
 - scene selector,

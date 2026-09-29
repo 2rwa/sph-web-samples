@@ -27,6 +27,11 @@ Small browser experiments for SPH implementations.
 
 ## SPlisHSPlasH WebAssembly
 
+- [SPlisHSPlasH upstream Scene JSON browser](./site/tests/splishsplash-scene-browser/)
+  - One browser page / one WASM core can rebuild and switch between `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
+  - CI switches WCSPH → DFSPH → DFSPH in one Emscripten module and advances each scene without scene-specific C++ initialization.
+
+
 - [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)
   - Builds upstream SPlisHSPlasH C++ with Emscripten rather than reimplementing the solver.
   - Uses the real `TimeStepWCSPH::step()` path.
