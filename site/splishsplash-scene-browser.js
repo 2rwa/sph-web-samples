@@ -35,6 +35,12 @@ const SCENES = {
     boundaryMethod: "Akinci2012",
     surfaceTensionMethod: 5,
   },
+  "SurfaceTension_CoveredSphere_ZR2020.json": {
+    method: "DFSPH",
+    particles: 90988,
+    boundaryModels: 1,
+    surfaceTensionMethod: 5,
+  },
 };
 
 const canvas = document.querySelector("#view");
@@ -122,20 +128,38 @@ function drawRigidBodies() {
   ctx.lineWidth = Math.max(1, canvas.width / 900);
 
   for (const body of currentIR.rigidBodies) {
-    if (!body.geometryFile?.endsWith("UnitBox.obj")) continue;
-    const [sx,sy,sz] = body.scale.map((v) => Math.abs(v) * 0.5);
     const [tx,ty,tz] = body.translation;
-    const corners = [
-      [-sx,-sy,-sz],[ sx,-sy,-sz],[-sx, sy,-sz],[ sx, sy,-sz],
-      [-sx,-sy, sz],[ sx,-sy, sz],[-sx, sy, sz],[ sx, sy, sz],
-    ].map(([x,y,z]) => project(x+tx,y+ty,z+tz));
+    if (body.geometryFile?.endsWith("UnitBox.obj")) {
+      const [sx,sy,sz] = body.scale.map((v) => Math.abs(v) * 0.5);
+      const corners = [
+        [-sx,-sy,-sz],[ sx,-sy,-sz],[-sx, sy,-sz],[ sx, sy,-sz],
+        [-sx,-sy, sz],[ sx,-sy, sz],[-sx, sy, sz],[ sx, sy, sz],
+      ].map(([x,y,z]) => project(x+tx,y+ty,z+tz));
 
-    ctx.beginPath();
-    for (const [a,b] of edges) {
-      ctx.moveTo(corners[a].x, corners[a].y);
-      ctx.lineTo(corners[b].x, corners[b].y);
+      ctx.beginPath();
+      for (const [a,b] of edges) {
+        ctx.moveTo(corners[a].x, corners[a].y);
+        ctx.lineTo(corners[b].x, corners[b].y);
+      }
+      ctx.stroke();
+    } else if (body.geometryFile?.endsWith("sphere.obj")) {
+      const [sx,sy,sz] = body.scale.map((v) => Math.abs(v));
+      const planes = ["xy","xz","yz"];
+      for (const plane of planes) {
+        ctx.beginPath();
+        for (let i = 0; i <= 36; i += 1) {
+          const a = i * Math.PI * 2 / 36;
+          const c = Math.cos(a), s = Math.sin(a);
+          let x=0,y=0,z=0;
+          if (plane === "xy") { x=sx*c; y=sy*s; }
+          else if (plane === "xz") { x=sx*c; z=sz*s; }
+          else { y=sy*c; z=sz*s; }
+          const p = project(x+tx,y+ty,z+tz);
+          if (i === 0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+        ctx.stroke();
+      }
     }
-    ctx.stroke();
   }
   ctx.restore();
 }

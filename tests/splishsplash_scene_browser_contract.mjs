@@ -18,6 +18,7 @@ assert.match(page, /BucklingModel_Weiler2018\.json/);
 assert.match(page, /SurfaceTension_NoGravCube_ZR2020\.json/);
 assert.match(page, /SurfaceTension_DoubleDroplet_ZR2020\.json/);
 assert.match(page, /SurfaceTension_BreakDamZR2020\.json/);
+assert.match(page, /SurfaceTension_CoveredSphere_ZR2020\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
 assert.match(app, /prepareBender2019Maps/);
 assert.match(app, /buildSceneFromIRWithPreparedBender/);
@@ -32,6 +33,8 @@ assert.match(runtime, /Bender2019 UnitBox volume map loaded from precomputed Dis
 assert.match(runtime, /sph_scene_set_iisph/);
 assert.match(runtime, /sph_scene_set_peer2015_viscosity/);
 assert.match(runtime, /unitbox-3x0p5x3-r20-i0-t0\.cdm/);
+assert.match(runtime, /sphere-s1-r20-i0-t0\.cdm/);
+assert.match(runtime, /sph_scene_add_mesh_bender_file/);
 
 assert.match(runtime, /sph_scene_set_peer2016_viscosity/);
 

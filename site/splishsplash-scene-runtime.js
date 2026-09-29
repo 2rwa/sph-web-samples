@@ -336,6 +336,15 @@ function benderMapKey(body) {
   ) {
     return "unitbox-3x0p5x3-r20-i0-t0.cdm";
   }
+  if (
+    body.geometryFile?.endsWith("sphere.obj") &&
+    s[0] === 1 && s[1] === 1 && s[2] === 1 &&
+    r[0] === 20 && r[1] === 20 && r[2] === 20 &&
+    body.mapInvert === false &&
+    Number(body.mapThickness) === 0
+  ) {
+    return "sphere-s1-r20-i0-t0.cdm";
+  }
   return null;
 }
 
@@ -346,8 +355,8 @@ export async function prepareBender2019Maps(Module, ir) {
 
   const files = [];
   for (const body of ir.rigidBodies) {
-    if (!body.geometryFile?.endsWith("UnitBox.obj") || body.isDynamic || Math.abs(body.rotationAngle) > 1e-8) {
-      throw new Error("Bender2019 browser bridge currently supports static unrotated UnitBox only");
+    if (body.isDynamic || Math.abs(body.rotationAngle) > 1e-8) {
+      throw new Error("Bender2019 browser bridge currently supports static unrotated rigid bodies only");
     }
 
     const key = benderMapKey(body);
@@ -499,13 +508,23 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
   for (let i = 0; i < ir.rigidBodies.length; i += 1) {
     const body = ir.rigidBodies[i];
     const mapFile = prepared[i].fsPath;
-    const result = Module.ccall(
-      "sph_scene_add_unit_box_bender_file",
-      "number",
-      ["number","number","number","number","number","number","string"],
-      [...body.translation, ...body.scale, mapFile],
-    );
-    requireCall(result, "sph_scene_add_unit_box_bender_file");
+    if (body.geometryFile?.endsWith("UnitBox.obj")) {
+      const result = Module.ccall(
+        "sph_scene_add_unit_box_bender_file",
+        "number",
+        ["number","number","number","number","number","number","string"],
+        [...body.translation, ...body.scale, mapFile],
+      );
+      requireCall(result, "sph_scene_add_unit_box_bender_file");
+    } else {
+      const result = Module.ccall(
+        "sph_scene_add_mesh_bender_file",
+        "number",
+        ["number","number","number","string"],
+        [...body.translation, mapFile],
+      );
+      requireCall(result, "sph_scene_add_mesh_bender_file");
+    }
   }
 
   const particles = Module._sph_scene_commit();
@@ -526,7 +545,7 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
     ignoredSurfaceParameters,
     substitutions: [
       ...(ir.rigidBodies.length
-        ? ["Bender2019 UnitBox volume map loaded from precomputed Discregrid .cdm"]
+        ? ["Bender2019 rigid-body volume map loaded from precomputed Discregrid .cdm"]
         : []),
       ...(ignoredSurfaceParameters.length
         ? [`Ignored source-only surface parameters: ${ignoredSurfaceParameters.join(", ")}`]
