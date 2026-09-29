@@ -31,7 +31,7 @@ Small browser experiments for SPH implementations.
   - One browser page / one WASM core rebuilds and switches among thirteen unedited upstream fixtures.
   - Solvers validated through the generic ABI: WCSPH, DFSPH, IISPH, ICSPH, and Projective Fluids.
   - The buckling fixtures additionally exercise Standard, Bender2017, Peer2015, Peer2016, Takahashi2015, and Weiler2018 viscosity configuration from Scene JSON.
-  - CI rebuilds all ten scenes sequentially in one Emscripten module without scene-specific C++ initialization.
+  - CI rebuilds all thirteen scenes sequentially in one Emscripten module without scene-specific C++ initialization.
 
 
 - [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)

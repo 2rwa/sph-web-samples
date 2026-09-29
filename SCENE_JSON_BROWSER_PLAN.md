@@ -135,7 +135,7 @@ First implement a deterministic browser bridge for the known static UnitBox wall
 - keep the original JSON values visible,
 - record whether the representation is exact or an approximation.
 
-The upstream Bender2019 volume-map path is now integrated into the shared Scene Browser. Two serialized UnitBox `.cdm` maps cover the current five fixtures. The browser preloads the matching map into Emscripten MEMFS and initializes native `BoundaryModel_Bender2019`; the previous sampled-Akinci2012 substitution remains only in older standalone regression pages.
+The upstream Bender2019 volume-map path is now integrated into the shared Scene Browser. Three serialized UnitBox `.cdm` maps cover the current validated Bender2019 fixtures. The browser preloads the matching map into Emscripten MEMFS and initializes native `BoundaryModel_Bender2019`; the previous sampled-Akinci2012 substitution remains only in older standalone regression pages.
 
 ## Phase 4 — method coverage
 
