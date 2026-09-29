@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import init, { InteractiveSimulation, Simulation3d, OfficialExample2dSimulation } from "../site/pkg/sph_web_samples.js";
+import init, { InteractiveSimulation, Simulation3d, OfficialExample2dSimulation, RapierCoupledSimulation } from "../site/pkg/sph_web_samples.js";
 
 const wasm = await readFile(new URL("../site/pkg/sph_web_samples_bg.wasm", import.meta.url));
 await init(wasm);
@@ -45,3 +45,21 @@ for (const [mode, expected] of [
   sample.free();
 }
 console.log("wasm runtime official examples2d OK: 5 modes constructed");
+
+
+for (const [mode, bodies] of [
+  ["upstream-basic", 3],
+  ["light-floaters", 3],
+  ["heavy-sinkers", 3],
+  ["layers-filtered", 3],
+  ["mixed-body-rain", 9],
+]) {
+  const coupled = new RapierCoupledSimulation(mode);
+  assert.equal(coupled.particle_count(), 1110, mode);
+  assert.equal(coupled.rigid_body_count(), bodies, mode);
+  assert.equal(coupled.rigid_body_states().length, bodies * 8, mode);
+  coupled.step(1 / 200);
+  assert.equal(coupled.rigid_body_states().length, bodies * 8, mode);
+  coupled.free();
+}
+console.log("wasm runtime Rapier coupling OK: 5 variants constructed and stepped");

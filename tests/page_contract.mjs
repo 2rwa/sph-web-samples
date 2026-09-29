@@ -11,6 +11,14 @@ const benchmarkApp = readFileSync("site/benchmark.js", "utf8");
 const interactiveApp = readFileSync("site/interactive-obstacles.js", "utf8");
 const app3d = readFileSync("site/3d-canvas.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
+const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
+const couplingPages = {
+  "upstream-basic": readFileSync("site/samples/salva-rapier-upstream-basic/index.html", "utf8"),
+  "light-floaters": readFileSync("site/samples/salva-rapier-light-floaters/index.html", "utf8"),
+  "heavy-sinkers": readFileSync("site/samples/salva-rapier-heavy-sinkers/index.html", "utf8"),
+  "layers-filtered": readFileSync("site/samples/salva-rapier-layers-filtered/index.html", "utf8"),
+  "mixed-body-rain": readFileSync("site/samples/salva-rapier-mixed-body-rain/index.html", "utf8"),
+};
 const officialPages = {
   "basic": readFileSync("site/samples/salva-official-basic/index.html", "utf8"),
   "custom-forces": readFileSync("site/samples/salva-official-custom-forces/index.html", "utf8"),
@@ -31,6 +39,11 @@ assert.match(top, /href="\.\/samples\/salva-official-custom-forces\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-elasticity\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-layers\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-surface-tension\/"/);
+assert.match(top, /href="\.\/samples\/salva-rapier-upstream-basic\/"/);
+assert.match(top, /href="\.\/samples\/salva-rapier-light-floaters\/"/);
+assert.match(top, /href="\.\/samples\/salva-rapier-heavy-sinkers\/"/);
+assert.match(top, /href="\.\/samples\/salva-rapier-layers-filtered\/"/);
+assert.match(top, /href="\.\/samples\/salva-rapier-mixed-body-rain\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -96,6 +109,18 @@ assert.match(officialApp, /boundary_positions/);
 assert.match(officialApp, /fluid_positions/);
 assert.match(officialApp, /sim\.step\(fixedDt\)/);
 
+for (const [mode, html] of Object.entries(couplingPages)) {
+  assert.match(html, new RegExp(`data-coupling-variant="${mode}"`));
+  assert.match(html, /<canvas\s+id="view"/);
+  assert.match(html, /rapier-coupling\.js\?v=1\.20/);
+}
+assert.match(couplingApp, /RapierCoupledSimulation/);
+assert.match(couplingApp, /sph_web_samples\.js\?v=1\.20/);
+assert.match(couplingApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.20", import\.meta\.url\)/);
+assert.match(couplingApp, /rigid_body_states/);
+assert.match(couplingApp, /drawRigidBodies/);
+assert.match(couplingApp, /sim\.step\(fixedDt\)/);
+
 assert.match(app, /Simulation/);
 assert.match(app, /\.\/pkg\/sph_web_samples\.js/);
 assert.match(app, /sim\.step\(fixedDt\)/);
@@ -104,6 +129,7 @@ assert.match(glue, /class BenchmarkSimulation/);
 assert.match(glue, /class InteractiveSimulation/);
 assert.match(glue, /class Simulation3d/);
 assert.match(glue, /class OfficialExample2dSimulation/);
+assert.match(glue, /class RapierCoupledSimulation/);
 
 assert.ok(statSync("site/pkg/sph_web_samples_bg.wasm").size > 10_000, "WASM should be non-trivial");
 assert.deepEqual([...wasm.subarray(0, 4)], [0x00, 0x61, 0x73, 0x6d], "WASM magic must be valid");
@@ -112,4 +138,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + nine samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + fourteen samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
