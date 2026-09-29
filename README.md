@@ -54,6 +54,11 @@ Small browser experiments for SPH implementations.
   - Fluid uses a 64³ fixed-point atomic density grid and `r32float` texture.
   - The Rapier floor and four walls are rendered as five exact analytic ray-box intersections.
   - This is the simplest 3,375-particle WebGPU raymarch baseline.
+- [Custom forces surface + force volume](./site/samples/salva-3d-webgpu-custom-forces/)
+  - Reuses the 1,000-particle zero-gravity Custom forces simulation.
+  - Fluid uses a 56³ atomic-splat density texture and implicit surface.
+  - The two upstream forces at (+1,0,0) and (-1,0,0) are evaluated analytically in the raymarch shader.
+  - Cyan and magenta volume emission visualize the force contributions around the moving particle body.
 
 ## WebGL2 examples3d ports
 

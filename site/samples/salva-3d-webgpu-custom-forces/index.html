@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Salva Custom Forces WebGPU Volume — SPH Web Samples</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d10; color: #dce7f2; }
+    main { width: min(96vw, 980px); }
+    h1 { margin: 0 0 .35rem; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    p { margin: .3rem 0 .8rem; color: #91a4b7; }
+    a { color: #9bd4ff; }
+    .controls, .metrics { display: flex; flex-wrap: wrap; gap: .55rem 1rem; align-items: center; margin: .8rem 0; }
+    label { display: inline-flex; align-items: center; gap: .45rem; }
+    input[type="range"] { width: 10rem; }
+    button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; cursor: pointer; }
+    canvas { width: 100%; aspect-ratio: 4 / 3; display: block; touch-action: none; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
+    .metrics { font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+    .note { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #26313b; font-size: .88rem; }
+    strong { color: #dce7f2; }
+  </style>
+</head>
+<body>
+  <main data-webgpu-raymarch="custom-forces">
+    <p><a href="../../">← SPH Web Samples</a></p>
+    <h1>Custom forces → Salva/WASM → WebGPU surface + force volume</h1>
+    <p>
+      The 1,000-particle Salva custom-force sample becomes an implicit surface on a 56³ fluid density grid.
+      The two upstream force sources at (+1,0,0) and (-1,0,0) are evaluated analytically per ray step
+      and rendered as an analytic force-field volume around the fluid.
+    </p>
+    <div class="controls">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="reset">Reset</button>
+      <a href="../salva-official-3d-custom-forces/">Canvas dots</a>
+      <a href="../salva-3d-webgl2-custom-forces/">WebGL2 points</a>
+      <span>Drag to orbit · wheel to zoom</span>
+    </div>
+    <div class="controls">
+      <label>
+        Kernel radius
+        <input id="kernel-radius" type="range" min="0.055" max="0.130" step="0.005" value="0.085">
+        <strong id="kernel-value">0.085</strong>
+      </label>
+      <label>
+        Iso level
+        <input id="iso-level" type="range" min="0.10" max="1.20" step="0.05" value="0.32">
+        <strong id="iso-value">0.32</strong>
+      </label>
+      <label>
+        Force glow
+        <input id="force-glow" type="range" min="0.00" max="2.00" step="0.05" value="0.85">
+        <strong id="force-value">0.85</strong>
+      </label>
+    </div>
+    <canvas id="view" width="800" height="600" aria-label="Salva Custom Forces fluid and force volume rendered with WebGPU"></canvas>
+    <div class="metrics">
+      <span>Particles: <strong id="particles">0</strong></span>
+      <span>Fluid grid: <strong>56³ fluid density grid</strong></span>
+      <span>Force sources: <strong>±1 on X</strong></span>
+      <span>Physics ms: <strong id="physics-ms">0.00</strong></span>
+      <span>GPU submit ms: <strong id="render-ms">0.00</strong></span>
+      <span>FPS: <strong id="fps">0.0</strong></span>
+      <span id="gpu-status">script-start</span>
+    </div>
+    <p class="note">
+      Cyan and magenta volume emission show the two analytic force contributions. The fluid density field is non-SDF,
+      so its surface still uses fixed ray steps plus binary hit refinement.
+    </p>
+  </main>
+  <script type="module" src="../../3d-webgpu-custom-forces.js?v=2.00"></script>
+</body>
+</html>
