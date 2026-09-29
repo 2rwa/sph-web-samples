@@ -109,3 +109,13 @@ fi
   /usr/bin/node "$PBD_GRAVITY_JS"
 ) | tee "$OUT_DIR/gravity-sweep.txt"
 grep -q 'SPLISHSPLASH_PBD_GRAVITY_SWEEP_OK' "$OUT_DIR/gravity-sweep.txt"
+
+echo "== run upstream PBD TimeStepController bridge probe =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_timestep_smoke --parallel 2
+PBD_TIMESTEP_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_timestep_smoke.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_TIMESTEP_JS" || ! -s "$PBD_TIMESTEP_JS" || ! -s "${PBD_TIMESTEP_JS%.js}.wasm" ]]; then
+  echo "PBD timestep smoke output not found" >&2
+  exit 26
+fi
+/usr/bin/node "$PBD_TIMESTEP_JS" | tee "$OUT_DIR/pbd-timestep-runtime.txt"
+grep -q 'SPLISHSPLASH_PBD_TIMESTEP_WASM_OK' "$OUT_DIR/pbd-timestep-runtime.txt"
