@@ -1,5 +1,7 @@
-import init, { OfficialExample3dSimulation } from "./pkg/sph_web_samples.js?v=1.40";
+import init, { OfficialExample3dSimulation } from "./pkg/sph_web_samples.js?v=1.41";
 
+const root = document.querySelector("[data-webgl3d-mode]");
+const mode = root.dataset.webgl3dMode;
 const canvas = document.querySelector("#view");
 const pauseButton = document.querySelector("#pause");
 const resetButton = document.querySelector("#reset");
@@ -58,6 +60,12 @@ void main() {
   out_color = vec4(v_color * shade, 1.0);
 }
 `;
+
+const fluidColors = [
+  new Float32Array([0.45, 0.78, 1.0]),
+  new Float32Array([0.55, 0.90, 0.58]),
+  new Float32Array([1.0, 0.58, 0.72]),
+];
 
 function compileShader(type, source) {
   const shader = gl.createShader(type);
@@ -147,31 +155,37 @@ function multiplyMat4(a, b) {
   return out;
 }
 
+function createPointStream() {
+  const vao = gl.createVertexArray();
+  const buffer = gl.createBuffer();
+
+  gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+
+  return { vao, buffer };
+}
+
+function destroyPointStream(stream) {
+  gl.deleteBuffer(stream.buffer);
+  gl.deleteVertexArray(stream.vao);
+}
+
 const program = createProgram();
 const viewProjLocation = gl.getUniformLocation(program, "u_view_proj");
 const pointScaleLocation = gl.getUniformLocation(program, "u_point_scale");
 const colorLocation = gl.getUniformLocation(program, "u_color");
 
-const fluidVao = gl.createVertexArray();
-const fluidBuffer = gl.createBuffer();
-gl.bindVertexArray(fluidVao);
-gl.bindBuffer(gl.ARRAY_BUFFER, fluidBuffer);
-gl.enableVertexAttribArray(0);
-gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+const boundaryStream = createPointStream();
 
-const boundaryVao = gl.createVertexArray();
-const boundaryBuffer = gl.createBuffer();
-gl.bindVertexArray(boundaryVao);
-gl.bindBuffer(gl.ARRAY_BUFFER, boundaryBuffer);
-gl.enableVertexAttribArray(0);
-gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-gl.bindVertexArray(null);
 gl.enable(gl.DEPTH_TEST);
 gl.depthFunc(gl.LEQUAL);
 gl.clearColor(0.02, 0.03, 0.04, 1.0);
 
 let sim;
+let fluidStreams = [];
 let boundaryCount = 0;
 let paused = false;
 let yaw = 0.78;
@@ -187,6 +201,11 @@ let fpsSince = previous;
 let fps = 0;
 let smoothedPhysicsMs = 0;
 let smoothedRenderMs = 0;
+
+function rebuildFluidStreams() {
+  for (const stream of fluidStreams) destroyPointStream(stream);
+  fluidStreams = Array.from({ length: sim.fluid_count() }, () => createPointStream());
+}
 
 function resizeCanvas() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -217,7 +236,7 @@ function cameraMatrix() {
   const projection = perspective(
     55 * Math.PI / 180,
     canvas.width / canvas.height,
-    0.02,
+    Math.max(0.0005, distance / 1000),
     Math.max(50, distance * 10),
   );
   const view = lookAt(eye, center, [0, 1, 0]);
@@ -227,16 +246,20 @@ function cameraMatrix() {
 function uploadBoundary() {
   const boundary = sim.boundary_positions();
   boundaryCount = boundary.length / 3;
-  gl.bindBuffer(gl.ARRAY_BUFFER, boundaryBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, boundaryStream.buffer);
   gl.bufferData(gl.ARRAY_BUFFER, boundary, gl.STATIC_DRAW);
 }
 
-function drawBuffer(vao, count, color, pointScale) {
+function drawBuffer(stream, count, color, pointScale) {
   if (count === 0) return;
   gl.uniform3fv(colorLocation, color);
   gl.uniform1f(pointScaleLocation, pointScale);
-  gl.bindVertexArray(vao);
+  gl.bindVertexArray(stream.vao);
   gl.drawArrays(gl.POINTS, 0, count);
+}
+
+function pointScaleForView() {
+  return Math.max(4.0, Math.min(20.0, sim.view_distance() * 2.2));
 }
 
 function render() {
@@ -245,18 +268,35 @@ function render() {
   gl.useProgram(program);
   gl.uniformMatrix4fv(viewProjLocation, false, cameraMatrix());
 
-  drawBuffer(boundaryVao, boundaryCount, new Float32Array([0.44, 0.39, 0.32]), 5.0);
+  const pointScale = pointScaleForView();
+  drawBuffer(
+    boundaryStream,
+    boundaryCount,
+    new Float32Array([0.44, 0.39, 0.32]),
+    pointScale * 0.42,
+  );
 
-  const fluid = sim.fluid_positions(0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, fluidBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, fluid, gl.DYNAMIC_DRAW);
-  drawBuffer(fluidVao, fluid.length / 3, new Float32Array([0.45, 0.78, 1.0]), 13.0);
+  for (let i = 0; i < sim.fluid_count(); i += 1) {
+    const fluid = sim.fluid_positions(i);
+    const stream = fluidStreams[i];
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, stream.buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, fluid, gl.DYNAMIC_DRAW);
+    drawBuffer(
+      stream,
+      fluid.length / 3,
+      fluidColors[i % fluidColors.length],
+      pointScale,
+    );
+  }
 }
 
 function resetSimulation() {
   if (sim) sim.free();
-  sim = new OfficialExample3dSimulation("basic");
+  sim = new OfficialExample3dSimulation(mode);
+  rebuildFluidStreams();
   uploadBoundary();
+
   accumulator = 0;
   previous = performance.now();
   frames = 0;
@@ -301,7 +341,7 @@ canvas.addEventListener("wheel", (event) => {
 }, { passive: false });
 
 async function main() {
-  await init(new URL("./pkg/sph_web_samples_bg.wasm?v=1.40", import.meta.url));
+  await init(new URL("./pkg/sph_web_samples_bg.wasm?v=1.41", import.meta.url));
   resetSimulation();
   gpuStatus.textContent = `WebGL2 · ${gl.getParameter(gl.RENDERER)}`;
 

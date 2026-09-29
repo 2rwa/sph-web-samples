@@ -25,6 +25,19 @@ Small browser experiments for SPH implementations.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.
 
+## WebGL2 examples3d ports
+
+All six registered examples3d modes now have WebGL2 point-sprite versions:
+
+- Basic
+- Custom forces
+- Elasticity
+- Faucet
+- Height field
+- Surface tension
+
+They share `site/3d-webgl2.js`. WebGL2 handles camera projection, depth testing, and shaded point sprites. Fluid XYZ arrays are dynamic VBOs; fixed boundary samples are uploaded as a static VBO. Physics remains the same Rust/WASM Salva + Rapier implementation as the Canvas ports.
+
 ## Upstream examples3d ports
 
 The six examples registered by Salva's `examples3d/all_examples3.rs` are exposed as browser pages:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Salva 3D WebGL2: Basic — SPH Web Samples</title>
+  <title>Salva 3D WebGL2: Faucet — SPH Web Samples</title>
   <style>
     :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     * { box-sizing: border-box; }
@@ -20,17 +20,17 @@
   </style>
 </head>
 <body>
-  <main data-webgl3d-mode="basic">
+  <main data-webgl3d-mode="faucet">
     <p><a href="../../">← SPH Web Samples</a></p>
-    <h1>Salva 3D Basic → Rust/WASM → WebGL2</h1>
-    <p>The 3,375-particle walled basin rendered with WebGL2 point sprites.</p>
+    <h1>Salva 3D Faucet → Rust/WASM → WebGL2</h1>
+    <p>A growing particle stream emitted over the coupled spherical obstacle.</p>
     <div class="controls">
       <button type="button" id="pause">Pause</button>
       <button type="button" id="reset">Reset</button>
-      <a href="../salva-official-3d-basic/">Canvas 2D version</a>
+      <a href="../salva-official-3d-faucet/">Canvas 2D version</a>
       <span>Drag to orbit · wheel to zoom</span>
     </div>
-    <canvas id="view" width="800" height="600" aria-label="Salva 3D Basic rendered with WebGL2"></canvas>
+    <canvas id="view" width="800" height="600" aria-label="Salva 3D Faucet rendered with WebGL2"></canvas>
     <div class="metrics">
       <span>Particles: <strong id="particles">0</strong></span>
       <span>Physics ms: <strong id="physics-ms">0.00</strong></span>
@@ -38,7 +38,7 @@
       <span>FPS: <strong id="fps">0.0</strong></span>
       <span id="gpu-status">WebGL2</span>
     </div>
-    <p class="note">Same Salva/Rapier Basic physics as the Canvas 2D port. Boundary samples are static on the GPU; fluid XYZ is uploaded each frame.</p>
+    <p class="note">The dynamic VBO naturally follows the changing particle count as the faucet emits and deletes particles.</p>
   </main>
   <script type="module" src="../../3d-webgl2.js?v=1.41"></script>
 </body>
