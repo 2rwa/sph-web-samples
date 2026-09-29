@@ -3,9 +3,9 @@ use salva3d::object::interaction_groups::InteractionGroups as InteractionGroups3
 use salva3d::object::{Boundary as Boundary3d, Fluid as Fluid3d, FluidHandle as FluidHandle3d};
 use salva3d::solver::IISPHSolver as IISPHSolver3d;
 use salva3d::LiquidWorld as LiquidWorld3d;
-use salva2d::object::interaction_groups::InteractionGroups;
+use salva2d::object::interaction_groups::{Group, InteractionGroups};
 use salva2d::object::{Boundary, BoundaryHandle, Fluid, FluidHandle};
-use salva2d::solver::IISPHSolver;
+use salva2d::solver::{Akinci2013SurfaceTension, ArtificialViscosity, Becker2009Elasticity, IISPHSolver, NonPressureForce, XSPHViscosity};
 use salva2d::LiquidWorld;
 use wasm_bindgen::prelude::*;
 
@@ -685,4 +685,337 @@ fn floor_boundary_3d() -> Vec<Vector3<f32>> {
     }
 
     points
+}
+
+
+#[derive(Clone, Copy)]
+enum OfficialExample2dKind {
+    Basic,
+    CustomForces,
+    Elasticity,
+    Layers,
+    SurfaceTension,
+}
+
+impl OfficialExample2dKind {
+    fn from_mode(mode: &str) -> Self {
+        match mode {
+            "custom-forces" => Self::CustomForces,
+            "elasticity" => Self::Elasticity,
+            "layers" => Self::Layers,
+            "surface-tension" => Self::SurfaceTension,
+            _ => Self::Basic,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Basic => "Basic",
+            Self::CustomForces => "Custom forces",
+            Self::Elasticity => "Elasticity",
+            Self::Layers => "Layers",
+            Self::SurfaceTension => "Surface tension",
+        }
+    }
+
+    fn view(self) -> (f32, f32, f32, f32) {
+        match self {
+            Self::Basic | Self::Layers => (0.0, 5.3, 5.8, 6.1),
+            Self::CustomForces => (0.0, 0.0, 1.35, 1.0),
+            Self::Elasticity => (0.0, 4.25, 3.4, 4.5),
+            Self::SurfaceTension => (0.0, 0.065, 0.18, 0.13),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct OfficialExample2dSimulation {
+    world: LiquidWorld,
+    fluids: Vec<FluidHandle>,
+    boundary_points: Vec<Vector2<f32>>,
+    gravity: Vector2<f32>,
+    kind: OfficialExample2dKind,
+}
+
+#[wasm_bindgen]
+impl OfficialExample2dSimulation {
+    #[wasm_bindgen(constructor)]
+    pub fn new(mode: &str) -> Self {
+        let kind = OfficialExample2dKind::from_mode(mode);
+        let (world, fluids, boundary_points, gravity) = match kind {
+            OfficialExample2dKind::Basic => build_official_basic(false),
+            OfficialExample2dKind::CustomForces => build_official_custom_forces(),
+            OfficialExample2dKind::Elasticity => build_official_elasticity(),
+            OfficialExample2dKind::Layers => build_official_basic(true),
+            OfficialExample2dKind::SurfaceTension => build_official_surface_tension(),
+        };
+
+        Self { world, fluids, boundary_points, gravity, kind }
+    }
+
+    pub fn example_name(&self) -> String {
+        self.kind.name().to_owned()
+    }
+
+    pub fn fluid_count(&self) -> usize {
+        self.fluids.len()
+    }
+
+    pub fn particle_count(&self) -> usize {
+        self.fluids
+            .iter()
+            .map(|handle| fluid_particle_count(&self.world, *handle))
+            .sum()
+    }
+
+    pub fn fluid_positions(&self, index: usize) -> Vec<f32> {
+        let Some(handle) = self.fluids.get(index).copied() else {
+            return Vec::new();
+        };
+        flattened_positions(&self.world, handle)
+    }
+
+    pub fn boundary_positions(&self) -> Vec<f32> {
+        let mut out = Vec::with_capacity(self.boundary_points.len() * 2);
+        for p in &self.boundary_points {
+            out.push(p.x);
+            out.push(p.y);
+        }
+        out
+    }
+
+    pub fn step(&mut self, dt: f32) {
+        if !dt.is_finite() || dt <= 0.0 {
+            return;
+        }
+        let dt = dt.clamp(1.0 / 1000.0, 1.0 / 60.0);
+        self.world.step(dt, &self.gravity);
+    }
+
+    pub fn view_center_x(&self) -> f32 { self.kind.view().0 }
+    pub fn view_center_y(&self) -> f32 { self.kind.view().1 }
+    pub fn view_half_width(&self) -> f32 { self.kind.view().2 }
+    pub fn view_half_height(&self) -> f32 { self.kind.view().3 }
+}
+
+fn new_official_world(particle_radius: f32) -> LiquidWorld {
+    let solver: IISPHSolver = IISPHSolver::new();
+    LiquidWorld::new(solver, particle_radius, SMOOTHING_FACTOR, 1.0)
+}
+
+fn cube_fluid_points(ni: usize, nj: usize, particle_radius: f32) -> Vec<Vector2<f32>> {
+    let half_extents = Vector2::new(ni as f32, nj as f32) * particle_radius;
+    let mut points = Vec::with_capacity(ni * nj);
+    for i in 0..ni {
+        for j in 0..nj {
+            let x = i as f32 * particle_radius * 2.0;
+            let y = j as f32 * particle_radius * 2.0;
+            points.push(Vector2::new(x, y) + Vector2::repeat(particle_radius) - half_extents);
+        }
+    }
+    points
+}
+
+fn translate_points(points: &mut [Vector2<f32>], dx: f32, dy: f32) {
+    for p in points {
+        p.x += dx;
+        p.y += dy;
+    }
+}
+
+fn sample_segment_2d(out: &mut Vec<Vector2<f32>>, a: Vector2<f32>, b: Vector2<f32>, spacing: f32) {
+    let length = (b - a).norm();
+    let steps = ((length / spacing).ceil() as usize).max(1);
+    for i in 0..=steps {
+        let t = i as f32 / steps as f32;
+        out.push(a + (b - a) * t);
+    }
+}
+
+fn official_basin_boundary(particle_radius: f32) -> Vec<Vector2<f32>> {
+    let spacing = particle_radius * 1.4;
+    let width = 10.0;
+    let nsubdivs = 50usize;
+    let mut base = Vec::with_capacity(nsubdivs + 1);
+
+    for i in 0..=nsubdivs {
+        let t = i as f32 / nsubdivs as f32;
+        let x = -width * 0.5 + t * width;
+        let y = (i as f32 * width / nsubdivs as f32).cos() * 0.5;
+        base.push(Vector2::new(x, y));
+    }
+
+    let mut points = Vec::new();
+    for segment in base.windows(2) {
+        sample_segment_2d(&mut points, segment[0], segment[1], spacing);
+    }
+
+    let left = base[0];
+    let right = base[base.len() - 1];
+    sample_segment_2d(&mut points, left, Vector2::new(left.x, 11.5), spacing);
+    sample_segment_2d(&mut points, right, Vector2::new(right.x, 11.5), spacing);
+
+    let first_layer = points.clone();
+    points.extend(first_layer.into_iter().map(|p| Vector2::new(p.x, p.y - spacing)));
+    points
+}
+
+fn official_ground_box(half_width: f32, half_height: f32, particle_radius: f32) -> Vec<Vector2<f32>> {
+    offset_rectangular_boundary(
+        Vector2::new(0.0, 0.0),
+        half_width,
+        half_height,
+        particle_radius * 1.4,
+    )
+}
+
+fn build_official_basic(layers: bool) -> (LiquidWorld, Vec<FluidHandle>, Vec<Vector2<f32>>, Vector2<f32>) {
+    let particle_radius = 0.1;
+    let mut world = new_official_world(particle_radius);
+    let mut handles = Vec::new();
+
+    let ni = 25usize;
+    let nj = 15usize;
+    let shift2 = nj as f32 * particle_radius * 2.0;
+    let mut points1 = Vec::new();
+    let mut points2 = Vec::new();
+    let mut points3 = Vec::new();
+
+    for i in 0..ni / 2 {
+        for j in 0..nj {
+            let x = i as f32 * particle_radius * 2.0 - ni as f32 * particle_radius;
+            let y = (j as f32 + 1.0) * particle_radius * 2.0 + 0.5;
+            points1.push(Vector2::new(x, y));
+            points2.push(Vector2::new(x + ni as f32 * particle_radius, y));
+        }
+    }
+
+    for i in 0..ni {
+        for j in 0..nj * 2 {
+            let x = i as f32 * particle_radius * 2.0 - ni as f32 * particle_radius;
+            let y = (j as f32 + 1.0) * particle_radius * 2.0 + 0.5 + shift2;
+            points3.push(Vector2::new(x, y));
+        }
+    }
+
+    let groups1 = if layers {
+        InteractionGroups::new(Group::GROUP_1, Group::GROUP_1)
+    } else {
+        InteractionGroups::default()
+    };
+    let groups2 = if layers {
+        InteractionGroups::new(Group::GROUP_2, Group::GROUP_2)
+    } else {
+        InteractionGroups::default()
+    };
+
+    let mut fluid1 = Fluid::new(points1, particle_radius, 1.0, groups1);
+    fluid1.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(1_000.0, 0.3, true)));
+    fluid1.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(world.add_fluid(fluid1));
+
+    let mut fluid2 = Fluid::new(points2, particle_radius, 1.0, groups2);
+    fluid2.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(1_000.0, 0.3, true)));
+    fluid2.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(world.add_fluid(fluid2));
+
+    let mut fluid3 = Fluid::new(points3, particle_radius, 1.0, groups2);
+    fluid3.nonpressure_forces.push(Box::new(ArtificialViscosity::new(0.5, 0.0)));
+    handles.push(world.add_fluid(fluid3));
+
+    let boundary_points = official_basin_boundary(particle_radius);
+    world.add_boundary(Boundary::new(
+        boundary_points.clone(),
+        if layers { InteractionGroups::all() } else { InteractionGroups::default() },
+    ));
+
+    (world, handles, boundary_points, Vector2::new(0.0, -9.81))
+}
+
+struct WebCustomForceField {
+    origin: Vector2<f32>,
+}
+
+impl NonPressureForce for WebCustomForceField {
+    fn solve(
+        &mut self,
+        _timestep: &salva2d::TimestepManager,
+        _kernel_radius: f32,
+        _fluid_fluid_contacts: &salva2d::geometry::ParticlesContacts,
+        _fluid_boundaries_contacts: &salva2d::geometry::ParticlesContacts,
+        fluid: &mut Fluid,
+        _boundaries: &[Boundary],
+        _densities: &[f32],
+    ) {
+        for (pos, acc) in fluid.positions.iter().zip(fluid.accelerations.iter_mut()) {
+            let delta = self.origin - pos;
+            let dist = delta.norm();
+            if dist > 0.1 {
+                *acc += delta / (dist * dist);
+            }
+        }
+    }
+
+    fn apply_permutation(&mut self, _permutation: &[usize]) {}
+}
+
+fn build_official_custom_forces() -> (LiquidWorld, Vec<FluidHandle>, Vec<Vector2<f32>>, Vector2<f32>) {
+    let particle_radius = 0.025;
+    let mut world = new_official_world(particle_radius);
+    let mut fluid = Fluid::new(
+        cube_fluid_points(30, 30, particle_radius),
+        particle_radius,
+        1000.0,
+        InteractionGroups::default(),
+    );
+    fluid.nonpressure_forces.push(Box::new(WebCustomForceField { origin: Vector2::new(1.0, 0.0) }));
+    fluid.nonpressure_forces.push(Box::new(WebCustomForceField { origin: Vector2::new(-1.0, 0.0) }));
+    let handle = world.add_fluid(fluid);
+    (world, vec![handle], Vec::new(), Vector2::zeros())
+}
+
+fn build_official_elasticity() -> (LiquidWorld, Vec<FluidHandle>, Vec<Vector2<f32>>, Vector2<f32>) {
+    let particle_radius = 0.1;
+    let mut world = new_official_world(particle_radius);
+    let ground_thickness = 0.2;
+    let height = 0.4;
+    let nparticlesx = 25usize;
+    let nparticlesy = 15usize;
+    let mut handles = Vec::new();
+
+    let mut points1 = cube_fluid_points(nparticlesx, nparticlesy, particle_radius);
+    translate_points(&mut points1, 0.0, ground_thickness + particle_radius * nparticlesy as f32 + height);
+    let mut fluid1 = Fluid::new(points1, particle_radius, 1000.0, InteractionGroups::default());
+    fluid1.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(500_000.0, 0.3, true)));
+    fluid1.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(world.add_fluid(fluid1));
+
+    let mut points2 = cube_fluid_points(nparticlesx, nparticlesy, particle_radius);
+    translate_points(&mut points2, 0.0, ground_thickness + particle_radius * nparticlesy as f32 * 4.0 + height);
+    let mut fluid2 = Fluid::new(points2, particle_radius, 1000.0, InteractionGroups::default());
+    fluid2.nonpressure_forces.push(Box::new(Becker2009Elasticity::new(100_000.0, 0.3, true)));
+    fluid2.nonpressure_forces.push(Box::new(XSPHViscosity::new(0.5, 1.0)));
+    handles.push(world.add_fluid(fluid2));
+
+    let boundary_points = official_ground_box(3.0, ground_thickness, particle_radius);
+    world.add_boundary(Boundary::new(boundary_points.clone(), InteractionGroups::default()));
+
+    (world, handles, boundary_points, Vector2::new(0.0, -9.81))
+}
+
+fn build_official_surface_tension() -> (LiquidWorld, Vec<FluidHandle>, Vec<Vector2<f32>>, Vector2<f32>) {
+    let particle_radius = 0.0025;
+    let mut world = new_official_world(particle_radius);
+
+    let mut points = cube_fluid_points(20, 20, particle_radius);
+    translate_points(&mut points, 0.0, 0.08);
+    let mut fluid = Fluid::new(points, particle_radius, 1000.0, InteractionGroups::default());
+    fluid.nonpressure_forces.push(Box::new(Akinci2013SurfaceTension::new(1.0, 0.0)));
+    fluid.nonpressure_forces.push(Box::new(ArtificialViscosity::new(0.01, 0.0)));
+    let handle = world.add_fluid(fluid);
+
+    let boundary_points = official_ground_box(0.15, 0.02, particle_radius);
+    world.add_boundary(Boundary::new(boundary_points.clone(), InteractionGroups::default()));
+
+    (world, vec![handle], boundary_points, Vector2::new(0.0, -0.981))
 }
