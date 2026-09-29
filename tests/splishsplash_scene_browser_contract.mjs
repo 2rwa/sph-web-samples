@@ -16,6 +16,7 @@ assert.match(page, /BucklingModel_Bender2017\.json/);
 assert.match(page, /BucklingModel_Takahashi2015\.json/);
 assert.match(page, /BucklingModel_Weiler2018\.json/);
 assert.match(page, /SurfaceTension_NoGravCube_ZR2020\.json/);
+assert.match(page, /SurfaceTension_DoubleDroplet_ZR2020\.json/);
 assert.match(app, /CI SPlisHSPlasH scene browser ok/);
 assert.match(app, /prepareBender2019Maps/);
 assert.match(app, /buildSceneFromIRWithPreparedBender/);
@@ -42,3 +43,6 @@ assert.match(runtime, /sph_scene_set_surface_real/);
 assert.match(runtime, /sph_scene_set_surface_int/);
 assert.match(runtime, /Ignored source-only surface parameters/);
 assert.match(app, /surfaceTensionMethod: 5/);
+
+assert.match(runtime, /sph_scene_set_surface_bool/);
+assert.match(runtime, /surfTZRtemporalSmooth/);

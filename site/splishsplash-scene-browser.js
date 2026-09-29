@@ -22,6 +22,12 @@ const SCENES = {
     boundaryModels: 0,
     surfaceTensionMethod: 5,
   },
+  "SurfaceTension_DoubleDroplet_ZR2020.json": {
+    method: "IISPH",
+    particles: 9826,
+    boundaryModels: 0,
+    surfaceTensionMethod: 5,
+  },
 };
 
 const canvas = document.querySelector("#view");

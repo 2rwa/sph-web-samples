@@ -38,6 +38,9 @@ function queueSurfaceTension(Module, material) {
     "surfTZRnormal-mode",
     "surfTZRMCSamples",
   ]);
+  const boolNames = new Set([
+    "surfTZRtemporalSmooth",
+  ]);
 
   for (const [name, rawValue] of Object.entries(params)) {
     const value = Number(rawValue);
@@ -60,6 +63,13 @@ function queueSurfaceTension(Module, material) {
         "number",
         ["string", "number"],
         [name, Math.trunc(value)],
+      );
+    } else if (boolNames.has(name)) {
+      result = Module.ccall(
+        "sph_scene_set_surface_bool",
+        "number",
+        ["string", "number"],
+        [name, rawValue ? 1 : 0],
       );
     } else {
       ignored.push(name);
