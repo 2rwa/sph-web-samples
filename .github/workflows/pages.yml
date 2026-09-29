@@ -19,7 +19,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,6 +43,20 @@ jobs:
 
       - name: Compile Rust to browser WASM
         run: wasm-pack build --release --target web --out-dir site/pkg
+
+      - name: Install SPlisHSPlasH Emscripten build dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends emscripten cmake ninja-build libeigen3-dev
+
+      - name: Build and test SPlisHSPlasH browser WASM
+        shell: bash
+        run: bash tests/splishsplash-wasm/build.sh
+
+      - name: Test SPlisHSPlasH page contract
+        run: node tests/splishsplash_browser_contract.mjs
 
       - name: Test WASM runtime reset
         run: node tests/wasm_runtime.mjs
@@ -84,6 +98,12 @@ jobs:
             kill "$CHROME_PID" "$HTTP_PID" 2>/dev/null || true
           }
           trap cleanup EXIT
+
+          if ! node tests/splishsplash_browser_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
 
           if ! node tests/webgpu_surface_tension_cdp.mjs; then
             cat /tmp/sph-http.log || true

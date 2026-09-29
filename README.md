@@ -25,6 +25,17 @@ Small browser experiments for SPH implementations.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.
 
+## SPlisHSPlasH WebAssembly
+
+- [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)
+  - Builds upstream SPlisHSPlasH C++ with Emscripten rather than reimplementing the solver.
+  - Uses the real `TimeStepWCSPH::step()` path.
+  - 216 / 512 / 1000 particle lattice presets.
+  - Browser UI exposes particle count, simulation steps/time, center Y, and physics time.
+  - The first milestone is deliberately boundary-free so browser execution can be isolated from boundary-model setup.
+  - CI runs 40 WCSPH steps in both Node and Headless Chrome and verifies finite positions plus downward center-of-mass motion.
+  - Generated browser JS/WASM is placed in `site/vendor/splishsplash/` during the Pages build.
+
 ## WebGPU raymarch experiments
 
 - [Surface tension density raymarch](./site/samples/salva-3d-webgpu-surface-tension/)
@@ -124,7 +135,7 @@ The first web pass prioritizes Salva behavior and Canvas visualization. Rapier-c
 
 See [OFFICIAL_EXAMPLES2D_PORTS.md](./OFFICIAL_EXAMPLES2D_PORTS.md).
 
-All samples use:
+The Salva samples use:
 
 - Physics: [Salva](https://github.com/dimforge/salva) 0.10.0
 - Build: Rust `wasm32-unknown-unknown` via `wasm-pack`
@@ -138,7 +149,9 @@ GitHub Pages publishes `site/`. The top page is intentionally a simple text inde
 ```bash
 cargo test
 wasm-pack build --release --target web --out-dir site/pkg
+bash tests/splishsplash-wasm/build.sh
 node tests/page_contract.mjs
+node tests/splishsplash_browser_contract.mjs
 python3 -m http.server -d site 8000
 ```
 

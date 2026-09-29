@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SPlisHSPlasH 2.18.1 WASM WCSPH</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font: 15px/1.45 system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+    }
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    a { color: #9fd1ff; }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+      margin: 12px 0;
+    }
+    button, select {
+      font: inherit;
+      padding: 6px 10px;
+    }
+    #view {
+      width: 100%;
+      height: min(68vh, 680px);
+      display: block;
+      background: #05080d;
+      border: 1px solid #333;
+      touch-action: none;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .metric {
+      background: #1b1f26;
+      padding: 8px 10px;
+      border-radius: 6px;
+    }
+    .label { color: #aaa; font-size: 12px; }
+    #status { font-weight: 700; }
+    .note { color: #bbb; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="../../">← SPH Web Samples</a></p>
+  <h1>SPlisHSPlasH 2.18.1 → Emscripten/WASM → browser</h1>
+  <p>
+    Real upstream <strong>WCSPH</strong> stepping in the browser. This first browser milestone intentionally has
+    <strong>no boundary model yet</strong>: the particle block free-falls under SPlisHSPlasH gravity.
+    The next milestone is a box boundary / dam-break scene.
+  </p>
+
+  <div class="bar">
+    <label>Block
+      <select id="side">
+        <option value="6">6³ = 216</option>
+        <option value="8" selected>8³ = 512</option>
+        <option value="10">10³ = 1000</option>
+      </select>
+    </label>
+    <label>Steps/frame
+      <select id="steps-per-frame">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4" selected>4</option>
+        <option value="8">8</option>
+      </select>
+    </label>
+    <button id="pause">Pause</button>
+    <button id="reset">Reset</button>
+    <span id="status">Loading WASM…</span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="label">Particles</div><div id="particles">-</div></div>
+    <div class="metric"><div class="label">Simulation steps</div><div id="steps">-</div></div>
+    <div class="metric"><div class="label">Simulation time</div><div id="sim-time">-</div></div>
+    <div class="metric"><div class="label">Physics ms/frame</div><div id="physics-ms">-</div></div>
+    <div class="metric"><div class="label">Center Y</div><div id="center-y">-</div></div>
+  </div>
+
+  <canvas id="view"></canvas>
+  <p class="note">
+    Drag to orbit. Wheel/pinch-style wheel to zoom. The horizontal guide is y=0.
+    Falling through it is expected in this boundary-free proof-of-execution.
+  </p>
+</main>
+
+<script src="../../vendor/splishsplash/splishsplash_browser.js"></script>
+<script type="module" src="../../splishsplash-wasm-demo.js"></script>
+</body>
+</html>
