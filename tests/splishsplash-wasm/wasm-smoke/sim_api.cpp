@@ -88,12 +88,14 @@ void destroy_simulation()
 std::vector<Vector3r> make_open_box_boundary(const Real spacing)
 {
     // Open-top tank. Integer grid coordinates avoid duplicate edge/corner particles.
-    const int minX = -12;
-    const int maxX = 12;
-    const int minZ = -8;
-    const int maxZ = 8;
+    // Boundary sampling follows the upstream mesh-sampling scale (about one particle radius),
+    // while keeping the physical tank size at x=[-0.6,0.6], z=[-0.4,0.4], y=[0,0.9].
+    const int minX = -24;
+    const int maxX = 24;
+    const int minZ = -16;
+    const int maxZ = 16;
     const int minY = 0;
-    const int maxY = 18;
+    const int maxY = 36;
 
     std::set<std::tuple<int, int, int>> cells;
 
@@ -268,7 +270,7 @@ int create_dambreak_simulation(const int requestedResolution)
     g_sim->setSimulationMethod(static_cast<int>(SimulationMethods::WCSPH));
     g_sim->setSimulationInitialized(1);
 
-    const std::vector<Vector3r> boundaryParticles = make_open_box_boundary(spacing);
+    const std::vector<Vector3r> boundaryParticles = make_open_box_boundary(particleRadius);
     add_akinci_boundary(boundaryParticles);
 
     g_side = resolution;
