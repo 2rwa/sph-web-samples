@@ -418,6 +418,35 @@ EMSCRIPTEN_KEEPALIVE int sph_scene()
     return g_scene;
 }
 
+
+EMSCRIPTEN_KEEPALIVE int sph_point_set_count()
+{
+    return g_sim ? static_cast<int>(g_sim->numberOfPointSets()) : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_boundary_point_set_index()
+{
+    return g_boundary ? static_cast<int>(g_boundary->getPointSetIndex()) : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_boundary_neighbor_links()
+{
+    if (!g_sim || !g_model || !g_boundary)
+        return 0;
+
+    g_sim->performNeighborhoodSearch();
+
+    const unsigned int fluidPointSet = g_model->getPointSetIndex();
+    const unsigned int boundaryPointSet = g_boundary->getPointSetIndex();
+    unsigned int links = 0u;
+    const unsigned int count = g_model->numActiveParticles();
+
+    for (unsigned int i = 0; i < count; ++i)
+        links += g_sim->numberOfNeighbors(fluidPointSet, boundaryPointSet, i);
+
+    return static_cast<int>(links);
+}
+
 EMSCRIPTEN_KEEPALIVE void sph_destroy()
 {
     destroy_simulation();
