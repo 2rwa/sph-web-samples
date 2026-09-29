@@ -103,6 +103,12 @@ jobs:
             exit 1
           fi
 
+          if ! node tests/webgpu_heightfield_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
+
           cat /tmp/chrome.log || true
 
       - name: Configure Pages
