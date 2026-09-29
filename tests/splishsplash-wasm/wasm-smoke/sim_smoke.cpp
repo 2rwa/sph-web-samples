@@ -37,10 +37,22 @@ int sph_scene_add_fluid_block(
 int sph_scene_add_unit_box(
     float tx, float ty, float tz,
     float sx, float sy, float sz);
+int sph_scene_add_unit_box_bender(
+    float tx, float ty, float tz,
+    float sx, float sy, float sz,
+    unsigned int resolutionX,
+    unsigned int resolutionY,
+    unsigned int resolutionZ,
+    int mapInvert,
+    float mapThickness);
 int sph_scene_commit();
 int sph_step(int steps);
 int sph_particle_count();
 int sph_boundary_count();
+int sph_boundary_model_count();
+int sph_boundary_handling_method();
+float sph_last_bender_map_build_ms();
+float sph_bender_boundary_volume_sum();
 int sph_point_set_count();
 int sph_boundary_point_set_index();
 int sph_boundary_neighbor_links();
@@ -551,6 +563,91 @@ int main()
         std::cout << "SPLISHSPLASH_GENERIC_PF_WASM_OK particles=" << count
                   << " boundary=" << sph_boundary_count() << " steps=" << steps
                   << " method=" << method << " iterations=" << iterations
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.025f, 0, 2))
+            return 90;
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_wcsph(25000.0f, 1.0f);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_add_fluid_block(
+            -0.2f, 0.0f, -0.2f,
+             0.2f, 0.4f,  0.2f,
+             0.0f, 0.02f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+        const int boxes = sph_scene_add_unit_box_bender(
+            0.0f, 1.5f, 0.0f,
+            3.1f, 3.1f, 3.1f,
+            25u, 25u, 25u,
+            1, 0.0f);
+
+        const int count = sph_scene_commit();
+        const float mapMs = sph_last_bender_map_build_ms();
+        const int boundaryModels = sph_boundary_model_count();
+        const int boundaryMethod = sph_boundary_handling_method();
+        const float minY0 = sph_min_y();
+
+        if (
+            boxes != 1 ||
+            count != 729 ||
+            boundaryModels != 1 ||
+            boundaryMethod != 2 ||
+            !(mapMs > 0.0f) ||
+            !sph_all_finite())
+        {
+            std::cerr << "SPLISHSPLASH_BENDER2019_MAP_WASM_FAIL init"
+                      << " boxes=" << boxes
+                      << " particles=" << count
+                      << " boundaryModels=" << boundaryModels
+                      << " boundaryMethod=" << boundaryMethod
+                      << " mapMs=" << mapMs
+                      << " minY=" << minY0 << "\n";
+            sph_destroy();
+            return 91;
+        }
+
+        const int steps = sph_step(1);
+        const float volumeSum = sph_bender_boundary_volume_sum();
+        const float minY1 = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            steps == 1 &&
+            sph_all_finite() &&
+            std::isfinite(volumeSum) &&
+            volumeSum > 0.0f &&
+            minY1 > -0.05f &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_BENDER2019_MAP_WASM_FAIL runtime"
+                      << " particles=" << count
+                      << " steps=" << steps
+                      << " mapMs=" << mapMs
+                      << " volumeSum=" << volumeSum
+                      << " minY0=" << minY0
+                      << " minY1=" << minY1
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 92;
+        }
+
+        std::cout << "SPLISHSPLASH_BENDER2019_MAP_WASM_OK"
+                  << " particles=" << count
+                  << " steps=" << steps
+                  << " mapResolution=25x25x25"
+                  << " mapMs=" << mapMs
+                  << " volumeSum=" << volumeSum
+                  << " minY=" << minY1
                   << " time=" << time << "\n";
         sph_destroy();
     }

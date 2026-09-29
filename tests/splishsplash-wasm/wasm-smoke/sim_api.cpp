@@ -9,12 +9,16 @@
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
+#include "SPlisHSPlasH/Utilities/GaussQuadrature.h"
+#include "SPlisHSPlasH/SPHKernels.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
 #include "Utilities/Logger.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <set>
 #include <tuple>
@@ -30,6 +34,8 @@ namespace {
 Simulation* g_sim = nullptr;
 FluidModel* g_model = nullptr;
 BoundaryModel_Akinci2012* g_boundary = nullptr;
+BoundaryModel_Bender2019* g_boundary_bender = nullptr;
+double g_last_bender_map_build_ms = 0.0;
 std::vector<float> g_positions;
 std::vector<float> g_boundary_positions;
 int g_side = 0;
@@ -51,6 +57,12 @@ struct PendingUnitBox
 {
     Vector3r translation;
     Vector3r scale;
+    bool useBender;
+    unsigned int resolutionX;
+    unsigned int resolutionY;
+    unsigned int resolutionZ;
+    bool mapInvert;
+    Real mapThickness;
 };
 
 std::vector<PendingFluidBlock> g_pending_blocks;
@@ -160,6 +172,8 @@ void destroy_simulation()
 {
     g_model = nullptr;
     g_boundary = nullptr;
+    g_boundary_bender = nullptr;
+    g_last_bender_map_build_ms = 0.0;
     g_sim = nullptr;
     g_positions.clear();
     g_boundary_positions.clear();
@@ -222,6 +236,102 @@ std::vector<Vector3r> make_open_box_boundary(const Real spacing)
     return result;
 }
 
+
+
+double signed_distance_box(const Eigen::Vector3d& x, const Eigen::Vector3d& halfExtents)
+{
+    const Eigen::Vector3d q = x.cwiseAbs() - halfExtents;
+    const double outside = q.cwiseMax(0.0).norm();
+    const double inside = std::min(std::max(q[0], std::max(q[1], q[2])), 0.0);
+    return outside + inside;
+}
+
+Discregrid::CubicLagrangeDiscreteGrid* make_bender_box_volume_map(const PendingUnitBox& box)
+{
+    const Real supportRadius = g_sim->getSupportRadius();
+    const Eigen::Vector3d halfExtents(
+        static_cast<double>(std::abs(box.scale[0])) * 0.5,
+        static_cast<double>(std::abs(box.scale[1])) * 0.5,
+        static_cast<double>(std::abs(box.scale[2])) * 0.5);
+
+    const double expansion =
+        8.0 * static_cast<double>(supportRadius) +
+        static_cast<double>(box.mapThickness);
+    Eigen::AlignedBox3d domain(
+        -halfExtents - Eigen::Vector3d::Constant(expansion),
+         halfExtents + Eigen::Vector3d::Constant(expansion));
+
+    Discregrid::CubicLagrangeDiscreteGrid* volumeMap =
+        new Discregrid::CubicLagrangeDiscreteGrid(
+            domain,
+            std::array<unsigned int, 3>({
+                box.resolutionX,
+                box.resolutionY,
+                box.resolutionZ
+            }));
+
+    const double sign = box.mapInvert ? -1.0 : 1.0;
+    const double tolerance = static_cast<double>(box.mapThickness);
+    auto sdf = [halfExtents, sign, tolerance](const Eigen::Vector3d& xi)
+    {
+        return sign * (signed_distance_box(xi, halfExtents) - tolerance);
+    };
+    volumeMap->addFunction(sdf, false);
+
+    auto intDomain = Eigen::AlignedBox3d(
+        Eigen::Vector3d::Constant(-static_cast<double>(supportRadius)),
+        Eigen::Vector3d::Constant( static_cast<double>(supportRadius)));
+
+    auto volumeFunc = [volumeMap, supportRadius](const Eigen::Vector3d& x)
+    {
+        const double distX = volumeMap->interpolate(0u, x);
+        if (distX > 2.0 * static_cast<double>(supportRadius))
+            return 0.0;
+
+        auto integrand = [volumeMap, supportRadius, &x](const Eigen::Vector3d& xi) -> double
+        {
+            if (xi.squaredNorm() >
+                static_cast<double>(supportRadius * supportRadius))
+                return 0.0;
+
+            const double dist = volumeMap->interpolate(0u, x + xi);
+            if (dist <= 0.0)
+                return 1.0;
+            if (dist < static_cast<double>(supportRadius))
+                return static_cast<double>(
+                    CubicKernel::W(static_cast<Real>(dist)) /
+                    CubicKernel::W_zero());
+            return 0.0;
+        };
+
+        return 0.8 * GaussQuadrature::integrate(integrand, intDomain, 30);
+    };
+
+    volumeMap->addFunction(volumeFunc, false);
+    return volumeMap;
+}
+
+void add_bender_box_boundary(const PendingUnitBox& box)
+{
+    StaticRigidBody* rb = new StaticRigidBody();
+    rb->setPosition0(box.translation);
+    rb->setPosition(box.translation);
+    rb->setRotation0(Quaternionr::Identity());
+    rb->setRotation(Quaternionr::Identity());
+
+    BoundaryModel_Bender2019* bm = new BoundaryModel_Bender2019();
+    bm->initModel(rb);
+
+    const auto begin = std::chrono::steady_clock::now();
+    bm->setMap(make_bender_box_volume_map(box));
+    const auto end = std::chrono::steady_clock::now();
+    g_last_bender_map_build_ms =
+        std::chrono::duration<double, std::milli>(end - begin).count();
+
+    g_sim->addBoundaryModel(bm);
+    bm->deferredInit();
+    g_boundary_bender = bm;
+}
 
 void add_akinci_boundary(const std::vector<Vector3r>& boundaryParticles);
 
@@ -349,10 +459,19 @@ int commit_generic_scene()
     g_sim = Simulation::getCurrent();
     g_sim->init(g_builder_particle_radius, false);
 
-    // First generic browser bridge: upstream Bender2019/Koschier rigid walls are
-    // represented as Akinci2012 sampled boundary particles. The JS adapter reports
-    // this substitution explicitly; the source Scene JSON is not rewritten.
-    if (!g_pending_boxes.empty())
+    bool hasBenderBox = false;
+    bool hasSampledBox = false;
+    for (const PendingUnitBox& box : g_pending_boxes)
+    {
+        hasBenderBox = hasBenderBox || box.useBender;
+        hasSampledBox = hasSampledBox || !box.useBender;
+    }
+    if (hasBenderBox && hasSampledBox)
+        return -14;
+
+    if (hasBenderBox)
+        g_sim->setBoundaryHandlingMethod(BoundaryHandlingMethods::Bender2019);
+    else if (hasSampledBox)
         g_sim->setBoundaryHandlingMethod(BoundaryHandlingMethods::Akinci2012);
 
     g_sim->setVecValue<Real>(Simulation::GRAVITATION, &g_builder_gravity[0]);
@@ -413,7 +532,12 @@ int commit_generic_scene()
 
     g_sim->setSimulationInitialized(1);
 
-    if (!g_pending_boxes.empty())
+    if (hasBenderBox)
+    {
+        for (const PendingUnitBox& box : g_pending_boxes)
+            add_bender_box_boundary(box);
+    }
+    else if (hasSampledBox)
     {
         std::vector<Vector3r> boundaryParticles;
         for (const PendingUnitBox& box : g_pending_boxes)
@@ -758,6 +882,39 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box(
     PendingUnitBox box;
     box.translation = Vector3r(tx, ty, tz);
     box.scale = Vector3r(sx, sy, sz);
+    box.useBender = false;
+    box.resolutionX = 0u;
+    box.resolutionY = 0u;
+    box.resolutionZ = 0u;
+    box.mapInvert = false;
+    box.mapThickness = static_cast<Real>(0.0);
+    g_pending_boxes.push_back(box);
+    return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender(
+    const float tx, const float ty, const float tz,
+    const float sx, const float sy, const float sz,
+    const unsigned int resolutionX,
+    const unsigned int resolutionY,
+    const unsigned int resolutionZ,
+    const int mapInvert,
+    const float mapThickness)
+{
+    if (!g_builder_active)
+        return 0;
+    if (resolutionX < 2u || resolutionY < 2u || resolutionZ < 2u)
+        return 0;
+
+    PendingUnitBox box;
+    box.translation = Vector3r(tx, ty, tz);
+    box.scale = Vector3r(sx, sy, sz);
+    box.useBender = true;
+    box.resolutionX = resolutionX;
+    box.resolutionY = resolutionY;
+    box.resolutionZ = resolutionZ;
+    box.mapInvert = mapInvert != 0;
+    box.mapThickness = static_cast<Real>(mapThickness);
     g_pending_boxes.push_back(box);
     return static_cast<int>(g_pending_boxes.size());
 }
@@ -893,6 +1050,33 @@ EMSCRIPTEN_KEEPALIVE int sph_solver_iterations()
     return (g_sim && g_sim->getTimeStep())
         ? static_cast<int>(g_sim->getTimeStep()->getNumIterations())
         : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_boundary_model_count()
+{
+    return g_sim ? static_cast<int>(g_sim->numberOfBoundaryModels()) : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_boundary_handling_method()
+{
+    return g_sim ? static_cast<int>(g_sim->getBoundaryHandlingMethod()) : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_last_bender_map_build_ms()
+{
+    return static_cast<float>(g_last_bender_map_build_ms);
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_bender_boundary_volume_sum()
+{
+    if (!g_boundary_bender || !g_model)
+        return 0.0f;
+
+    double sum = 0.0;
+    const unsigned int count = g_model->numActiveParticles();
+    for (unsigned int i = 0; i < count; ++i)
+        sum += static_cast<double>(g_boundary_bender->getBoundaryVolume(0u, i));
+    return static_cast<float>(sum);
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_point_set_count()
