@@ -17,6 +17,9 @@
     output { min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
     canvas { width: 100%; aspect-ratio: 4 / 3; display: block; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
     #status { margin-top: .55rem; min-height: 1.2em; font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+    .note { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #26313b; font-size: .9rem; color: #9fb5c8; }
+    .note h2 { margin: 0 0 .5rem; font-size: 1rem; color: #dce7f2; }
+    .note ul { margin: .4rem 0 0; padding-left: 1.25rem; }
   </style>
 </head>
 <body>
@@ -31,6 +34,24 @@
     </label>
     <canvas id="view" width="800" height="600" aria-label="SPH benchmark particle simulation"></canvas>
     <div id="status">Loading WASM…</div>
+
+    <section class="note" aria-labelledby="known-behavior">
+      <h2 id="known-behavior">Known behavior: occasional particles escape the box</h2>
+      <p>
+        This benchmark uses a hand-built SPH boundary made from particles, not a hard collision wall.
+        The current setup uses two boundary layers, boundary spacing equal to one particle diameter,
+        and a fixed SPH step of 1/120 s. A few particles can occasionally pass through the boundary.
+      </p>
+      <p>
+        The likely causes are boundary discretization and/or timestep size rather than a confirmed Salva bug.
+        Useful follow-up checks:
+      </p>
+      <ul>
+        <li>denser or thicker boundary particles,</li>
+        <li>a smaller timestep such as 1/200 or 1/400 s,</li>
+        <li>comparison with a Rapier collider sampled as a Salva boundary.</li>
+      </ul>
+    </section>
   </main>
   <script type="module" src="../../benchmark.js"></script>
 </body>
