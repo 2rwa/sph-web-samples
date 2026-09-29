@@ -1823,9 +1823,19 @@ EMSCRIPTEN_KEEPALIVE int sph_step_dynamic_pbd(const int steps)
     return static_cast<int>(g_step_count);
 }
 
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_position_x()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getPosition()[0]) : 0.0f;
+}
+
 EMSCRIPTEN_KEEPALIVE float sph_pbd_body_position_y()
 {
     return g_pbd_body ? static_cast<float>(g_pbd_body->getPosition()[1]) : 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_position_z()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getPosition()[2]) : 0.0f;
 }
 
 EMSCRIPTEN_KEEPALIVE float sph_pbd_body_velocity_y()

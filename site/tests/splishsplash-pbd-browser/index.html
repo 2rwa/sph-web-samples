@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SPlisHSPlasH PBD two-way coupling</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; background:#101217; color:#eee; font:15px/1.45 system-ui,sans-serif; }
+    main { max-width:1050px; margin:0 auto; padding:18px; }
+    a { color:#9fd1ff; }
+    .bar { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:end; margin:12px 0; }
+    label { display:grid; gap:4px; }
+    select,button { font:inherit; padding:6px 9px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:8px; margin:12px 0; }
+    .card { background:#1b1f26; padding:8px 10px; border-radius:6px; }
+    .label { color:#aaa; font-size:12px; }
+    #status { font-weight:700; }
+    #view { width:100%; height:min(68vh,650px); display:block; background:#05080d; border:1px solid #333; touch-action:none; }
+    .note { color:#bbb; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="../../">← SPH Web Samples</a></p>
+  <h1>SPlisHSPlasH PBD two-way coupling</h1>
+  <p>
+    Native DFSPH fluid → Bender2019 volume-map boundary force → PositionBasedDynamics rigid body,
+    all compiled to WebAssembly. The default parameters come from the CI sweep:
+    250 kg plate, fluid initial velocity −0.5 m/s.
+  </p>
+  <p class="note">This milestone intentionally uses zero gravity so the force-feedback path is isolated. Reset rebuilds the scene with the selected mass and fluid speed.</p>
+
+  <div class="bar">
+    <label>Plate mass
+      <select id="mass">
+        <option>50</option><option>100</option><option selected>250</option><option>500</option><option>1000</option><option>2000</option>
+      </select>
+    </label>
+    <label>Fluid Y velocity
+      <select id="fluid-vy">
+        <option value="-0.25">−0.25 m/s</option>
+        <option value="-0.5" selected>−0.50 m/s</option>
+        <option value="-1">−1.00 m/s</option>
+      </select>
+    </label>
+    <button id="pause">Pause</button>
+    <button id="reset">Reset</button>
+    <span id="status">Loading…</span>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Fluid particles</div><div id="particles">-</div></div>
+    <div class="card"><div class="label">Steps</div><div id="steps">-</div></div>
+    <div class="card"><div class="label">Simulation time</div><div id="sim-time">-</div></div>
+    <div class="card"><div class="label">Plate Y</div><div id="plate-y">-</div></div>
+    <div class="card"><div class="label">Displacement Y</div><div id="plate-dy">-</div></div>
+    <div class="card"><div class="label">Plate speed</div><div id="plate-speed">-</div></div>
+    <div class="card"><div class="label">Max boundary force</div><div id="max-force">-</div></div>
+    <div class="card"><div class="label">Physics ms/frame</div><div id="physics-ms">-</div></div>
+  </div>
+
+  <canvas id="view"></canvas>
+</main>
+<script src="../../vendor/splishsplash-pbd/splishsplash_pbd_browser.js"></script>
+<script type="module" src="../../splishsplash-pbd-browser.js"></script>
+</body>
+</html>

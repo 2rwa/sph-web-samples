@@ -83,3 +83,16 @@ fi
   /usr/bin/node "$PBD_SWEEP_JS"
 ) | tee "$OUT_DIR/coupling-sweep.txt"
 grep -q 'SPLISHSPLASH_PBD_SWEEP_OK' "$OUT_DIR/coupling-sweep.txt"
+
+echo "== build browser PBD coupling module =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_browser --parallel 2
+PBD_BROWSER_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_browser.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_BROWSER_JS" || ! -s "$PBD_BROWSER_JS" || ! -s "${PBD_BROWSER_JS%.js}.wasm" ]]; then
+  echo "PBD browser output not found" >&2
+  exit 24
+fi
+PBD_SITE_DIR="$REPO_ROOT/site/vendor/splishsplash-pbd"
+mkdir -p "$PBD_SITE_DIR"
+cp "$PBD_BROWSER_JS" "$PBD_SITE_DIR/splishsplash_pbd_browser.js"
+cp "${PBD_BROWSER_JS%.js}.wasm" "$PBD_SITE_DIR/splishsplash_pbd_browser.wasm"
+echo "pbd_browser_wasm_bytes=$(wc -c < "${PBD_BROWSER_JS%.js}.wasm")" | tee -a "$OUT_DIR/build-info.txt"

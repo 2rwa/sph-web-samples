@@ -67,6 +67,12 @@ jobs:
           SPLISHSPLASH_WASM_WORK_ROOT: ${{ github.workspace }}/.cache/splishsplash-wasm-probe
         run: bash tests/splishsplash-wasm/build.sh
 
+      - name: Build PBD browser WASM
+        shell: bash
+        env:
+          SPLISHSPLASH_WASM_WORK_ROOT: ${{ github.workspace }}/.cache/splishsplash-wasm-probe
+        run: bash tests/splishsplash-wasm/build-pbd-probe.sh
+
       - name: Save SPlisHSPlasH WASM build cache
         if: always() && steps.splish-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -83,6 +89,7 @@ jobs:
           node tests/splishsplash_generic_dfsph_contract.mjs
           node tests/splishsplash_generic_double_dfsph_contract.mjs
           node tests/splishsplash_scene_browser_contract.mjs
+          node tests/splishsplash_pbd_browser_contract.mjs
 
       - name: Test WASM runtime reset
         run: node tests/wasm_runtime.mjs
@@ -126,6 +133,12 @@ jobs:
           trap cleanup EXIT
 
           if ! node tests/splishsplash_scene_browser_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
+
+          if ! node tests/splishsplash_pbd_browser_cdp.mjs; then
             cat /tmp/sph-http.log || true
             cat /tmp/chrome.log || true
             exit 1
