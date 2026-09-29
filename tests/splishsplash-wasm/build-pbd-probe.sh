@@ -110,6 +110,7 @@ fi
 ) | tee "$OUT_DIR/gravity-sweep.txt"
 grep -q 'SPLISHSPLASH_PBD_GRAVITY_SWEEP_OK' "$OUT_DIR/gravity-sweep.txt"
 
+echo "pbd_timestep_controller_probe=enabled" | tee -a "$OUT_DIR/build-info.txt"
 echo "== run upstream PBD TimeStepController bridge probe =="
 cmake --build "$BUILD_DIR" --target splishsplash_pbd_timestep_smoke --parallel 2
 PBD_TIMESTEP_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_timestep_smoke.js' -print -quit 2>/dev/null || true)"
