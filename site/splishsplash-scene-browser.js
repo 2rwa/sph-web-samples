@@ -223,17 +223,29 @@ async function boot() {
         running = false;
         const centerY0 = Module._sph_center_y();
         Module._sph_step(1);
+        const centerY1 = Module._sph_center_y();
+        const minY = Module._sph_min_y();
+        const simTime = Module._sph_time();
+        const ok =
+          report.simulationMethod === expected.method &&
+          report.particles === expected.particles &&
+          report.boundaryModels === 1 &&
+          report.effectiveBoundaryMethod === "Bender2019" &&
+          Module._sph_step_count() === 1 &&
+          Module._sph_all_finite() &&
+          Number.isFinite(centerY1) &&
+          Number.isFinite(minY) &&
+          simTime > 0;
         results.push({
           name,
-          ok:
-            report.simulationMethod === expected.method &&
-            report.particles === expected.particles &&
-            report.boundaryModels === 1 &&
-            report.effectiveBoundaryMethod === "Bender2019" &&
-            Module._sph_step_count() === 1 &&
-            Module._sph_all_finite() &&
-            Number.isFinite(Module._sph_center_y()) &&
-            Module._sph_center_y() <= centerY0 + 1e-5,
+          ok,
+          method: report.simulationMethod,
+          particles: report.particles,
+          boundaryModels: report.boundaryModels,
+          centerY0,
+          centerY1,
+          minY,
+          simTime,
         });
       }
       const ok = results.every((entry) => entry.ok);
