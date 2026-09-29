@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deep dive: Basic quality / performance ladder — SPH Web Samples</title><style>
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0d10;color:#dce7f2}
+main{width:min(96vw,1040px)}h1{margin:0 0 .35rem;font-size:clamp(1.2rem,3vw,1.8rem)}
+p{margin:.3rem 0 .8rem;color:#91a4b7}a{color:#9bd4ff}.controls,.metrics{display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;margin:.8rem 0}
+label{display:inline-flex;align-items:center;gap:.45rem}input[type=range]{width:10rem}button,select{border:1px solid #3b4b5a;background:#151a20;color:#dce7f2;padding:.5rem .75rem;border-radius:.4rem}
+canvas{width:100%;aspect-ratio:4/3;display:block;touch-action:none;background:#05070a;border:1px solid #26313b;border-radius:10px}
+.metrics{font-size:.85rem;color:#9fb5c8;font-variant-numeric:tabular-nums}.note{margin-top:1rem;padding-top:.8rem;border-top:1px solid #26313b;font-size:.88rem}strong{color:#dce7f2}
+</style></head><body>
+<main data-deep-dive="basic-quality">
+<p><a href="../../">← SPH Web Samples</a></p><h1>Deep dive: Basic quality / performance ladder</h1><p>The same 3,375-particle Basic simulation is rendered at multiple density-grid and render-resolution quality levels so the visual/performance tradeoff is observable instead of guessed.</p>
+<div class="controls"><button id="pause" type="button">Pause</button><button id="reset" type="button">Reset</button><span>Drag to orbit · wheel to zoom</span></div>
+<div class="controls"><label>Quality preset <select id="quality-preset"><option value="low">Low — 32³ / 0.5×</option><option value="medium" selected>Medium — 48³ / 0.75×</option><option value="high">High — 64³ / 1.0×</option></select></label><label>Iso level <input id="iso-level" type="range" min="0.10" max="1.20" step="0.05" value="0.35"><strong id="iso-value">0.35</strong></label></div>
+<canvas id="view" width="800" height="600"></canvas>
+<div class="metrics"><span>Particles: <strong id="particles">0</strong></span><span>Grid: <strong id="grid-info">48³</strong></span><span>Ray step: <strong id="step-info">0.055</strong></span><span>Render scale: <strong id="scale-info">0.75×</strong></span><span>Physics ms: <strong id="physics-ms">0.00</strong></span><span>GPU submit ms: <strong id="render-ms">0.00</strong></span><span>FPS: <strong id="fps">0.0</strong></span><span id="gpu-status">script-start</span></div>
+<p class="note">Changing Quality preset reallocates the 3D density texture and atomic buffers. Low/Medium/High therefore change compute volume, ray step, and render resolution together.</p>
+</main><script type="module" src="../../3d-webgpu-deep-dive.js?v=2.10"></script></body></html>

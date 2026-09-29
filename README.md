@@ -60,6 +60,16 @@ Small browser experiments for SPH implementations.
   - The two upstream forces at (+1,0,0) and (-1,0,0) are evaluated analytically in the raymarch shader.
   - Cyan and magenta volume emission visualize the force contributions around the moving particle body.
 
+## WebGPU deep-dive experiments
+
+- Basic quality ladder — changes density-grid edge, ray step and render scale together (32³ / 48³ / 64³).
+- Faucet velocity surface — reconstructs a weighted-average speed volume from a second fixed-point atomic accumulator and colors the implicit surface by local speed.
+- Custom-force slice explorer — overlays a movable analytic slice of the ±X force field through the 3D fluid.
+- Height-field cutaway — clips fluid at a movable Z plane and overlays density plus the procedural terrain profile.
+- Elasticity material metrics — tracks per-body bounding-box stretch, extent-volume ratio, COM, RMS speed and max speed over time.
+
+These samples are intentionally diagnostic: they expose quality/performance tradeoffs, hidden fields, interior sections, and coarse response measurements instead of only producing prettier surfaces.
+
 ## WebGL2 examples3d ports
 
 All six registered examples3d modes now have WebGL2 point-sprite versions:
