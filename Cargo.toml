@@ -9,8 +9,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 nalgebra = "0.35"
 salva2d = { version = "0.10.0", features = ["sampling"] }
-salva3d = "0.10.0"
+salva3d = { version = "0.10.0", features = ["sampling"] }
 rapier2d = "0.35.1"
+rapier3d = "0.35.1"
 wasm-bindgen = "0.2"
 
 [profile.release]

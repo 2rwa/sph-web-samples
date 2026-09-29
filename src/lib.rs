@@ -1517,3 +1517,6 @@ fn add_coupled_body(
         group: group_id,
     });
 }
+
+mod official_examples3d;
+pub use official_examples3d::OfficialExample3dSimulation;
