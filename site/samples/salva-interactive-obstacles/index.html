@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Salva Interactive Obstacles — SPH Web Samples</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d10; color: #dce7f2; }
+    main { width: min(96vw, 980px); }
+    h1 { margin: 0 0 .35rem; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    p { margin: .25rem 0 .8rem; color: #91a4b7; }
+    a { color: #9bd4ff; }
+    .tools { display: flex; flex-wrap: wrap; gap: .45rem; margin: .8rem 0; }
+    button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; cursor: pointer; }
+    button[aria-pressed="true"] { background: #28445b; border-color: #73c8ff; }
+    button:hover { border-color: #73c8ff; }
+    canvas { width: 100%; aspect-ratio: 4 / 3; display: block; touch-action: none; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
+    #status { margin-top: .55rem; min-height: 1.2em; font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+    .help { margin-top: .8rem; font-size: .88rem; color: #91a4b7; }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="../../">← SPH Web Samples</a></p>
+    <h1>Salva interactive obstacles</h1>
+    <p>1,000 Salva particles. Draw obstacles directly on the Canvas; they are added to the WASM simulation as Salva boundaries.</p>
+
+    <div class="tools" role="toolbar" aria-label="Obstacle tools">
+      <button type="button" data-tool="circle" aria-pressed="true">Circle</button>
+      <button type="button" data-tool="box" aria-pressed="false">Box</button>
+      <button type="button" data-tool="line" aria-pressed="false">Line</button>
+      <button type="button" data-tool="draw" aria-pressed="false">Free Draw</button>
+      <button type="button" id="clear-obstacles">Clear obstacles</button>
+    </div>
+
+    <canvas id="view" width="800" height="600" aria-label="Interactive SPH obstacle simulation"></canvas>
+    <div id="status">Loading WASM…</div>
+    <p class="help">
+      Circle: drag center → radius. Box: drag one corner → opposite corner.
+      Line: drag start → end. Free Draw: drag a path. Orange dots are the actual sampled boundary particles.
+    </p>
+  </main>
+  <script type="module" src="../../interactive-obstacles.js"></script>
+</body>
+</html>
