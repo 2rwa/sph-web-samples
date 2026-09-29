@@ -7,7 +7,9 @@
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
 #include "SPlisHSPlasH/ICSPH/TimeStepICSPH.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
+#include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
@@ -98,6 +100,12 @@ unsigned int g_builder_pf_min_iterations = 2u;
 unsigned int g_builder_pf_max_iterations = 100u;
 Real g_builder_pf_max_error = static_cast<Real>(0.05);
 Real g_builder_pf_stiffness = static_cast<Real>(25000.0);
+unsigned int g_builder_iisph_min_iterations = 2u;
+unsigned int g_builder_iisph_max_iterations = 100u;
+Real g_builder_iisph_max_error = static_cast<Real>(0.01);
+Real g_builder_peer2015_viscosity = static_cast<Real>(0.01);
+unsigned int g_builder_peer2015_max_iterations = 50u;
+Real g_builder_peer2015_max_error = static_cast<Real>(0.01);
 bool g_builder_active = false;
 
 void reset_builder()
@@ -132,6 +140,12 @@ void reset_builder()
     g_builder_pf_max_iterations = 100u;
     g_builder_pf_max_error = static_cast<Real>(0.05);
     g_builder_pf_stiffness = static_cast<Real>(25000.0);
+    g_builder_iisph_min_iterations = 2u;
+    g_builder_iisph_max_iterations = 100u;
+    g_builder_iisph_max_error = static_cast<Real>(0.01);
+    g_builder_peer2015_viscosity = static_cast<Real>(0.01);
+    g_builder_peer2015_max_iterations = 50u;
+    g_builder_peer2015_max_error = static_cast<Real>(0.01);
     g_builder_active = false;
 }
 
@@ -448,7 +462,8 @@ int commit_generic_scene()
         g_builder_simulation_method != static_cast<int>(SimulationMethods::WCSPH) &&
         g_builder_simulation_method != static_cast<int>(SimulationMethods::DFSPH) &&
         g_builder_simulation_method != static_cast<int>(SimulationMethods::PF) &&
-        g_builder_simulation_method != static_cast<int>(SimulationMethods::ICSPH))
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::ICSPH) &&
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::IISPH))
         return -11;
     if (!(g_builder_particle_radius > 0.0))
         return -12;
@@ -509,6 +524,20 @@ int commit_generic_scene()
             Viscosity_Standard::VISCOSITY_COEFFICIENT,
             g_builder_standard_viscosity);
     }
+    else if (
+        g_builder_viscosity_method == 3u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2015::VISCOSITY_COEFFICIENT,
+            g_builder_peer2015_viscosity);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2015::MAX_ITERATIONS,
+            g_builder_peer2015_max_iterations);
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Peer2015::MAX_ERROR,
+            g_builder_peer2015_max_error);
+    }
 
     g_sim->setSimulationMethod(g_builder_simulation_method);
 
@@ -544,6 +573,13 @@ int commit_generic_scene()
         pf->setValue(TimeStepPF::MAX_ITERATIONS, g_builder_pf_max_iterations);
         pf->setValue(TimeStepPF::MAX_ERROR, g_builder_pf_max_error);
         pf->setValue(TimeStepPF::STIFFNESS, g_builder_pf_stiffness);
+    }
+    else if (g_builder_simulation_method == static_cast<int>(SimulationMethods::IISPH))
+    {
+        TimeStepIISPH* iisph = static_cast<TimeStepIISPH*>(g_sim->getTimeStep());
+        iisph->setValue(TimeStepIISPH::MIN_ITERATIONS, g_builder_iisph_min_iterations);
+        iisph->setValue(TimeStepIISPH::MAX_ITERATIONS, g_builder_iisph_max_iterations);
+        iisph->setValue(TimeStepIISPH::MAX_ERROR, g_builder_iisph_max_error);
     }
 
     g_sim->setSimulationInitialized(1);
@@ -854,6 +890,19 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_pf(
     return 1;
 }
 
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_iisph(
+    const unsigned int minIterations,
+    const unsigned int maxIterations,
+    const float maxError)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_iisph_min_iterations = minIterations;
+    g_builder_iisph_max_iterations = maxIterations;
+    g_builder_iisph_max_error = static_cast<Real>(maxError);
+    return 1;
+}
+
 EMSCRIPTEN_KEEPALIVE int sph_scene_set_material(
     const float density0,
     const unsigned int viscosityMethod)
@@ -872,6 +921,19 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_standard_viscosity(const float viscosity)
     if (viscosity < 0.0f)
         return 0;
     g_builder_standard_viscosity = static_cast<Real>(viscosity);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_peer2015_viscosity(
+    const float viscosity,
+    const unsigned int maxIterations,
+    const float maxError)
+{
+    if (!g_builder_active || viscosity < 0.0f || maxIterations < 1u || maxError <= 0.0f)
+        return 0;
+    g_builder_peer2015_viscosity = static_cast<Real>(viscosity);
+    g_builder_peer2015_max_iterations = maxIterations;
+    g_builder_peer2015_max_error = static_cast<Real>(maxError);
     return 1;
 }
 
