@@ -51,7 +51,7 @@ assert.match(interactive, /Orange dots are the actual sampled boundary particles
 assert.match(interactive, /type="module"\s+src="\.\.\/\.\.\/interactive-obstacles\.js\?v=/);
 assert.match(interactiveApp, /InteractiveSimulation/);
 assert.match(interactiveApp, /sph_web_samples\.js\?v=/);
-assert.match(interactiveApp, /sph_web_samples_bg\.wasm\?v=/);
+assert.match(interactiveApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.04", import\.meta\.url\)/);
 assert.match(interactiveApp, /pointerdown/);
 assert.match(interactiveApp, /add_circle_obstacle/);
 assert.match(interactiveApp, /add_box_obstacle/);
@@ -63,10 +63,10 @@ assert.match(interactiveApp, /particleCountSelect\.value/);
 
 assert.match(sample3d, /<canvas\s+id="view"/);
 assert.match(sample3d, /3D SPH particles projected as Canvas dots/);
-assert.match(sample3d, /3d-canvas\.js\?v=1\.03/);
+assert.match(sample3d, /3d-canvas\.js\?v=1\.04/);
 assert.match(app3d, /Simulation3d/);
-assert.match(app3d, /sph_web_samples\.js\?v=1\.03/);
-assert.match(app3d, /sph_web_samples_bg\.wasm\?v=1\.03/);
+assert.match(app3d, /sph_web_samples\.js\?v=1\.04/);
+assert.match(app3d, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.04", import\.meta\.url\)/);
 assert.match(app3d, /projected\.sort/);
 assert.match(app3d, /sim\.step\(fixedDt\)/);
 
