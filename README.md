@@ -39,8 +39,15 @@ Small browser experiments for SPH implementations.
   - Uses the upstream `BoundaryModel_Akinci2012` and `StaticRigidBody` path.
   - The open-top tank is sampled as actual boundary particles and visualized in orange.
   - Fluid presets: 432 / 896 / 1600 particles.
-  - CI advances 220 WCSPH steps and verifies finite positions plus floor containment after a duration that would send the boundary-free control far below y=0.
+  - CI advances 320 WCSPH steps and verifies finite positions plus floor containment; the successful reference run ended at minY=0.025922 after about 0.32 s of simulation time.
   - Boundary count, minimum fluid Y, maximum fluid X, simulation time, and physics ms are shown in the browser.
+- [SPlisHSPlasH upstream Scene JSON adapter](./site/tests/splishsplash-scene-json/)
+  - Loads unedited SPlisHSPlasH 2.18.1 scene fixtures in JavaScript.
+  - Normalizes solver, boundary method, materials, rigid bodies, and fluid blocks into a browser scene IR.
+  - Reports browser bridge requirements explicitly instead of silently rewriting unsupported desktop features.
+  - Initial fixtures: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
+
+See [SPLISHSPLASH_WASM_MILESTONE_20260929.md](./SPLISHSPLASH_WASM_MILESTONE_20260929.md) for the frozen WASM milestone and [SCENE_JSON_BROWSER_PLAN.md](./SCENE_JSON_BROWSER_PLAN.md) for the next architecture phase.
 
 ## WebGPU raymarch experiments
 
@@ -159,6 +166,7 @@ bash tests/splishsplash-wasm/build.sh
 node tests/page_contract.mjs
 node tests/splishsplash_browser_contract.mjs
 node tests/splishsplash_dambreak_contract.mjs
+node tests/splishsplash_scene_json_contract.mjs
 python3 -m http.server -d site 8000
 ```
 

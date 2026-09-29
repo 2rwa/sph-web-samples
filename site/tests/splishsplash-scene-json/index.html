@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SPlisHSPlasH Scene JSON adapter</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #101217; color: #eee; font: 15px/1.5 system-ui,sans-serif; }
+    main { max-width: 1100px; margin: 0 auto; padding: 18px; }
+    a { color: #9fd1ff; }
+    select { font: inherit; padding: 6px 8px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; margin:14px 0; }
+    .card { background:#1b1f26; padding:10px 12px; border-radius:7px; }
+    .label { color:#aaa; font-size:12px; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#07090d; padding:12px; border:1px solid #333; }
+    #status { font-weight:700; }
+    .warn { color:#ffd28c; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="../../">← SPH Web Samples</a></p>
+  <h1>SPlisHSPlasH upstream Scene JSON → browser IR</h1>
+  <p>
+    This page loads unedited SPlisHSPlasH 2.18.1 scene fixtures and normalizes the desktop scene format in JavaScript.
+    It does not yet instantiate a generic simulation; unsupported desktop bridges are shown explicitly.
+  </p>
+  <p>
+    <label>Scene
+      <select id="scene">
+        <option value="CompressibleSPH_WCSPH.json">CompressibleSPH_WCSPH.json</option>
+        <option value="DamBreakModel.json">DamBreakModel.json</option>
+        <option value="DoubleDamBreak.json">DoubleDamBreak.json</option>
+      </select>
+    </label>
+    <span id="status">Loading…</span>
+  </p>
+  <div class="grid">
+    <div class="card"><div class="label">Simulation method</div><div id="method">-</div></div>
+    <div class="card"><div class="label">Boundary method</div><div id="boundary">-</div></div>
+    <div class="card"><div class="label">Particle radius</div><div id="radius">-</div></div>
+    <div class="card"><div class="label">Fluid blocks</div><div id="blocks">-</div></div>
+    <div class="card"><div class="label">Estimated particles</div><div id="particles">-</div></div>
+    <div class="card"><div class="label">Generic ABI candidate</div><div id="candidate">-</div></div>
+  </div>
+  <h2>Bridge requirements</h2>
+  <ul id="requirements"></ul>
+  <h2>Normalized scene IR</h2>
+  <pre id="ir"></pre>
+</main>
+<script type="module" src="../../splishsplash-scene-inspector.js"></script>
+</body>
+</html>

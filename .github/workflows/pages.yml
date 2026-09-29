@@ -78,6 +78,7 @@ jobs:
         run: |
           node tests/splishsplash_browser_contract.mjs
           node tests/splishsplash_dambreak_contract.mjs
+          node tests/splishsplash_scene_json_contract.mjs
 
       - name: Test WASM runtime reset
         run: node tests/wasm_runtime.mjs
