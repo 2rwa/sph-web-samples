@@ -111,6 +111,12 @@ export function buildSceneFromIR(Module, ir) {
     ),
     "sph_scene_set_material",
   );
+  if (material.viscosityMethod === 1) {
+    requireCall(
+      Module._sph_scene_set_standard_viscosity(material.standardViscosity),
+      "sph_scene_set_standard_viscosity",
+    );
+  }
 
   for (const block of ir.fluidBlocks) {
     requireCall(
@@ -289,6 +295,12 @@ export function buildSceneFromIRWithPreparedBender(Module, ir) {
 
   const material = ir.materials[0] ?? { density0:1000, viscosityMethod:1 };
   requireCall(Module._sph_scene_set_material(material.density0, material.viscosityMethod), "sph_scene_set_material");
+  if (material.viscosityMethod === 1) {
+    requireCall(
+      Module._sph_scene_set_standard_viscosity(material.standardViscosity),
+      "sph_scene_set_standard_viscosity",
+    );
+  }
 
   for (const block of ir.fluidBlocks) {
     requireCall(Module._sph_scene_add_fluid_block(

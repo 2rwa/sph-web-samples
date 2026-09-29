@@ -28,6 +28,7 @@ int sph_scene_set_pf(
     float maxError,
     float stiffness);
 int sph_scene_set_material(float density0, unsigned int viscosityMethod);
+int sph_scene_set_standard_viscosity(float viscosity);
 int sph_scene_add_fluid_block(
     float sx, float sy, float sz,
     float ex, float ey, float ez,
@@ -68,6 +69,7 @@ float sph_max_x();
 float sph_time();
 int sph_all_finite();
 int sph_simulation_method();
+float sph_standard_viscosity();
 int sph_solver_iterations();
 void sph_destroy();
 }
@@ -223,6 +225,7 @@ int main()
         sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
         sph_scene_set_wcsph(25000.0f, 1.0f);
         sph_scene_set_material(1000.0f, 1u);
+        sph_scene_set_standard_viscosity(0.01f);
 
         const int block1 = sph_scene_add_fluid_block(
             -0.4f, -0.4f, -0.4f,
@@ -253,6 +256,7 @@ int main()
             boxes != 1 ||
             count != 9826 ||
             boundaryCount < 20000 ||
+            std::abs(sph_standard_viscosity() - 0.01f) > 1.0e-6f ||
             !sph_all_finite())
         {
             std::cerr << "SPLISHSPLASH_GENERIC_SCENE_WASM_FAIL init"
@@ -260,6 +264,7 @@ int main()
                       << " boxes=" << boxes
                       << " particles=" << count
                       << " boundary=" << boundaryCount
+                      << " viscosity=" << sph_standard_viscosity()
                       << " minY=" << y0
                       << " maxX=" << x0 << "\n";
             sph_destroy();

@@ -7,6 +7,7 @@
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
 #include "SPlisHSPlasH/ICSPH/TimeStepICSPH.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
@@ -79,6 +80,7 @@ Real g_builder_cfl_max = static_cast<Real>(0.001);
 Real g_builder_initial_dt = static_cast<Real>(0.001);
 Real g_builder_density0 = static_cast<Real>(1000.0);
 unsigned int g_builder_viscosity_method = 1u;
+Real g_builder_standard_viscosity = static_cast<Real>(0.01);
 Real g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
 Real g_builder_wcsph_exponent = static_cast<Real>(1.0);
 unsigned int g_builder_dfsph_min_iterations = 2u;
@@ -112,6 +114,7 @@ void reset_builder()
     g_builder_initial_dt = static_cast<Real>(0.001);
     g_builder_density0 = static_cast<Real>(1000.0);
     g_builder_viscosity_method = 1u;
+    g_builder_standard_viscosity = static_cast<Real>(0.01);
     g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
     g_builder_wcsph_exponent = static_cast<Real>(1.0);
     g_builder_dfsph_min_iterations = 2u;
@@ -498,6 +501,14 @@ int commit_generic_scene()
     g_model = g_sim->getFluidModel(0);
     g_model->setDensity0(g_builder_density0);
     g_model->setViscosityMethod(g_builder_viscosity_method);
+    if (
+        g_builder_viscosity_method == 1u &&
+        g_model->getViscosityBase() != nullptr)
+    {
+        g_model->getViscosityBase()->setValue(
+            Viscosity_Standard::VISCOSITY_COEFFICIENT,
+            g_builder_standard_viscosity);
+    }
 
     g_sim->setSimulationMethod(g_builder_simulation_method);
 
@@ -854,6 +865,16 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_material(
     return 1;
 }
 
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_standard_viscosity(const float viscosity)
+{
+    if (!g_builder_active)
+        return 0;
+    if (viscosity < 0.0f)
+        return 0;
+    g_builder_standard_viscosity = static_cast<Real>(viscosity);
+    return 1;
+}
+
 EMSCRIPTEN_KEEPALIVE int sph_scene_add_fluid_block(
     const float sx, const float sy, const float sz,
     const float ex, const float ey, const float ez,
@@ -1081,6 +1102,19 @@ EMSCRIPTEN_KEEPALIVE int sph_scene()
 EMSCRIPTEN_KEEPALIVE int sph_simulation_method()
 {
     return g_sim ? g_sim->getSimulationMethod() : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_standard_viscosity()
+{
+    if (
+        !g_model ||
+        g_model->getViscosityMethod() != 1u ||
+        g_model->getViscosityBase() == nullptr)
+        return -1.0f;
+
+    return static_cast<float>(
+        g_model->getViscosityBase()->getValue<Real>(
+            Viscosity_Standard::VISCOSITY_COEFFICIENT));
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_solver_iterations()
