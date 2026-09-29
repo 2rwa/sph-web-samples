@@ -60,6 +60,25 @@ elif kind == "discregrid":
     path = src / "discregrid" / "CMakeLists.txt"
     start_marker = "# OpenMP support."
     end_marker = "# Eigen library."
+elif kind == "pbd":
+    path = src / "CMake" / "Common.cmake"
+    text = path.read_text()
+    marker = "\\tif (CI_BUILD)\\n"
+    replacement = (
+        "\\tif (EMSCRIPTEN)\\n"
+        "\\t\\t# wasm32 has no host CPU target for -march=native/-march=x86-64.\\n"
+        "\\t\\tset(CMAKE_CXX_FLAGS_RELEASE \\"-O3 -DNDEBUG\\")\\n"
+        "\\t\\tset(CMAKE_CXX_FLAGS_RELWITHDEBINFO \\"-O3 -DNDEBUG\\")\\n"
+        "\\telseif (CI_BUILD)\\n"
+    )
+    if replacement in text:
+        print(f"Emscripten release flags already patched in {path}")
+        raise SystemExit(0)
+    if text.count(marker) != 1:
+        raise RuntimeError(f"unexpected PBD Common.cmake CI_BUILD layout: {text.count(marker)} matches")
+    path.write_text(text.replace(marker, replacement, 1))
+    print(f"Patched Emscripten release flags in {path}")
+    raise SystemExit(0)
 else:
     raise SystemExit(f"unknown dependency kind: {kind}")
 
@@ -79,6 +98,23 @@ path.write_text(text[:start] + replacement + text[end:])
 print(f"Disabled OpenMP requirement in {path}")
 """
     )
+
+
+def forward_pbd_eigen() -> None:
+    path = root / "CMake" / "SetUpExternalProjects.cmake"
+    text = path.read_text()
+    needle = "\t-DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}\n"
+    inserted = (
+        needle
+        + "\t-DEIGEN3_INCLUDE_DIR:PATH=${EIGEN3_INCLUDE_DIR}\n"
+    )
+    if inserted in text:
+        return
+    if text.count(needle) != 1:
+        raise RuntimeError(
+            f"unexpected PBD USE_DOUBLE_PRECISION layout: {text.count(needle)} matches"
+        )
+    path.write_text(text.replace(needle, inserted, 1))
 
 
 def add_external_patch(relative: str, git_tag: str, kind: str) -> None:
@@ -103,6 +139,7 @@ def add_external_patch(relative: str, git_tag: str, kind: str) -> None:
 patch_common()
 forward_toolchain("CMake/NeighborhoodSearch.cmake")
 forward_toolchain("CMake/SetUpExternalProjects.cmake")
+forward_pbd_eigen()
 write_external_openmp_patcher()
 add_external_patch(
     "CMake/NeighborhoodSearch.cmake",
@@ -113,5 +150,10 @@ add_external_patch(
     "CMake/SetUpExternalProjects.cmake",
     "ddf20dc0480874bf02e0bdc6ded76c1f101b17fb",
     "discregrid",
+)
+add_external_patch(
+    "CMake/SetUpExternalProjects.cmake",
+    "10a70bc146a97873dc3c8fef372f5217e010542e",
+    "pbd",
 )
 print("Applied Emscripten compatibility patches.")
