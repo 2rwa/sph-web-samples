@@ -393,7 +393,7 @@ fn marchTerrain(ro:vec3f,rd:vec3f)->f32{
 struct BasinHit{distanceValue:f32,surfaceNormal:vec3f};
 fn boxNormal(p:vec3f,c:vec3f,h:vec3f)->vec3f{let l=p-c;let s=abs(l)/h;if(s.y>=s.x&&s.y>=s.z){return vec3f(0,sign(l.y),0);}if(s.x>=s.z){return vec3f(sign(l.x),0,0);}return vec3f(0,0,sign(l.z));}
 fn boxHit(ro:vec3f,rd:vec3f,c:vec3f,h:vec3f)->BasinHit{let i=rayBoxInterval(ro,rd,c-h,c+h);let n=max(i.x,0.0);if(i.y<n){return BasinHit(1000000.0,vec3f(0));}let p=ro+rd*n;return BasinHit(n,boxNormal(p,c,h));}
-fn nearer(a:BasinHit,b:BasinHit)->BasinHit{return select(a,b,b.distanceValue<a.distanceValue);}
+fn nearer(a:BasinHit,b:BasinHit)->BasinHit{if(b.distanceValue<a.distanceValue){return b;}return a;}
 fn basin(ro:vec3f,rd:vec3f)->BasinHit{var h=boxHit(ro,rd,vec3f(0,0,0),vec3f(2.5,0.2,2.5));
  h=nearer(h,boxHit(ro,rd,vec3f(2.5,0.7,0),vec3f(0.2,0.7,2.5)));h=nearer(h,boxHit(ro,rd,vec3f(-2.5,0.7,0),vec3f(0.2,0.7,2.5)));
  h=nearer(h,boxHit(ro,rd,vec3f(0,0.7,2.5),vec3f(2.5,0.7,0.2)));h=nearer(h,boxHit(ro,rd,vec3f(0,0.7,-2.5),vec3f(2.5,0.7,0.2)));return h;}
