@@ -1260,5 +1260,91 @@ int main()
         sph_destroy();
     }
 
+
+
+    {
+        if (!sph_scene_begin(0.02f, 4, 0))
+            return 154;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.005f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.05f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_set_standard_viscosity(0.01f);
+
+        sph_scene_set_surface_tension_method(5u);
+        sph_scene_set_surface_real("surfaceTension", 0.1f);
+        sph_scene_set_surface_int("surfTZRversion", 0);
+        sph_scene_set_surface_int("surfTZRCsd", 10000);
+        sph_scene_set_surface_real("surfTZRr-ratio", 0.8f);
+        sph_scene_set_surface_real("surfTZRtau", 0.5f);
+        sph_scene_set_surface_real("surfTZRd", 28.0f);
+        sph_scene_set_surface_int("surfTZRsampling", 0);
+        sph_scene_set_surface_int("surfTZRnormal-mode", 1);
+        sph_scene_set_surface_real("surfTZRPcaMixNrm", 0.8f);
+        sph_scene_set_surface_real("surfTZRPcaMixCur", 0.4f);
+        sph_scene_set_surface_int("surfTZRMCSamples", -1);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -1.0f, -0.5f, -0.5f,
+             0.25f, 1.5f,  0.5f,
+             0.0f,  0.5f,  0.0f,
+             0.9f,  0.9f,  0.9f,
+             0.0f,  0.0f,  0.0f,
+             0);
+        const int boxes = sph_scene_add_unit_box(
+            0.1f, 1.0f, 0.0f,
+            2.0f, 2.0f, 1.0f);
+
+        const int count = sph_scene_commit();
+        const int boundaryCount = sph_boundary_count();
+        const int surfaceMethod = sph_surface_tension_method();
+        const int missing = sph_surface_parameter_missing_count();
+        const int steps = sph_step(1);
+        const float minY = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            blocks == 1 &&
+            boxes == 1 &&
+            count == 30682 &&
+            boundaryCount == 10002 &&
+            sph_boundary_handling_method() == 0 &&
+            surfaceMethod == 5 &&
+            missing == 0 &&
+            steps == 1 &&
+            sph_simulation_method() == 4 &&
+            sph_solver_iterations() >= 2 &&
+            sph_all_finite() &&
+            std::isfinite(minY) &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_SURFACE_ZR2020_BREAKDAM_WASM_FAIL"
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " boundaryMethod=" << sph_boundary_handling_method()
+                      << " surfaceMethod=" << surfaceMethod
+                      << " missingParams=" << missing
+                      << " steps=" << steps
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 155;
+        }
+
+        std::cout << "SPLISHSPLASH_SURFACE_ZR2020_BREAKDAM_WASM_OK"
+                  << " particles=" << count
+                  << " boundary=" << boundaryCount
+                  << " boundaryMethod=" << sph_boundary_handling_method()
+                  << " surfaceMethod=" << surfaceMethod
+                  << " missingParams=" << missing
+                  << " steps=" << steps
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
     return 0;
 }

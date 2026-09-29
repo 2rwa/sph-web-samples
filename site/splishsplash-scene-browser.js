@@ -28,6 +28,13 @@ const SCENES = {
     boundaryModels: 0,
     surfaceTensionMethod: 5,
   },
+  "SurfaceTension_BreakDamZR2020.json": {
+    method: "DFSPH",
+    particles: 30682,
+    boundaryModels: 1,
+    boundaryMethod: "Akinci2012",
+    surfaceTensionMethod: 5,
+  },
 };
 
 const canvas = document.querySelector("#view");
@@ -282,7 +289,7 @@ async function boot() {
           report.simulationMethod === expected.method &&
           report.particles === expected.particles &&
           report.boundaryModels === (expected.boundaryModels ?? 1) &&
-          report.effectiveBoundaryMethod === "Bender2019" &&
+          report.effectiveBoundaryMethod === (expected.boundaryMethod ?? "Bender2019") &&
           (expected.surfaceTensionMethod == null ||
             report.surfaceTensionMethod === expected.surfaceTensionMethod) &&
           report.surfaceParameterMissingCount === 0 &&
