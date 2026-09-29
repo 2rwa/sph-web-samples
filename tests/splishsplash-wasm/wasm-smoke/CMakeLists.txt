@@ -34,6 +34,6 @@ target_link_options(splishsplash_browser PRIVATE
     "-sEXPORT_NAME=createSPlisHSPlasH"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sASSERTIONS=1"
-    "-sEXPORTED_RUNTIME_METHODS=HEAPF32"
+    "-sEXPORTED_RUNTIME_METHODS=HEAPF32,FS,ccall"
 )
 set_target_properties(splishsplash_browser PROPERTIES SUFFIX ".js")

@@ -8,12 +8,13 @@ SRC_DIR="$WORK_ROOT/SPlisHSPlasH"
 BUILD_DIR="$WORK_ROOT/build"
 OUT_DIR="$TEST_DIR/out"
 SITE_VENDOR_DIR="$REPO_ROOT/site/vendor/splishsplash"
+SITE_MAP_DIR="$SITE_VENDOR_DIR/maps"
 BUILD_STAMP="$WORK_ROOT/build-input.sha256"
 UPSTREAM_TAG="2.18.1"
 
 rm -rf "$OUT_DIR" "$SITE_VENDOR_DIR"
 MAP_DIR="$WORK_ROOT/maps"
-mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR" "$MAP_DIR"
+mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR" "$SITE_MAP_DIR" "$MAP_DIR"
 
 echo "== toolchain =="
 EMCC_VERSION="$(emcc --version | head -1)"
@@ -202,5 +203,14 @@ echo "== execute real WCSPH simulation smoke under Node =="
   cd "$MAP_DIR"
   run_node_probe "$SIM_JS" "SPLISHSPLASH_SIM_WASM_OK" "simulation-runtime.log"
 )
+
+shopt -s nullglob
+for map_file in "$MAP_DIR"/*.cdm; do
+  cp "$map_file" "$SITE_MAP_DIR/"
+done
+shopt -u nullglob
+
+echo "== cached Bender2019 maps =="
+find "$MAP_DIR" -maxdepth 1 -type f -name '*.cdm' -printf '%f %s bytes\n' | sort || true
 
 echo "SPlisHSPlasH WebAssembly build + WCSPH simulation probes passed."

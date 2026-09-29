@@ -672,5 +672,86 @@ int main()
         sph_destroy();
     }
 
+
+
+    {
+        if (!sph_scene_begin(0.025f, 0, 2))
+            return 94;
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_wcsph(25000.0f, 1.0f);
+        sph_scene_set_material(1000.0f, 1u);
+        sph_scene_add_fluid_block(
+            -0.2f, 0.0f, -0.2f,
+             0.2f, 0.4f,  0.2f,
+             0.0f, 0.02f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+
+        const char* mapFile = "unitbox-4x3x1p5-r40x30x15-i1-t0.cdm";
+        const bool cachedMap = std::ifstream(mapFile, std::ios::binary).good();
+        const int boxes = cachedMap
+            ? sph_scene_add_unit_box_bender_file(
+                0.0f, 1.5f, 0.0f,
+                4.0f, 3.0f, 1.5f,
+                mapFile)
+            : sph_scene_add_unit_box_bender(
+                0.0f, 1.5f, 0.0f,
+                4.0f, 3.0f, 1.5f,
+                40u, 30u, 15u,
+                1, 0.0f);
+
+        const int count = sph_scene_commit();
+        if (!cachedMap && !sph_save_last_bender_map(mapFile))
+        {
+            std::cerr << "SPLISHSPLASH_BENDER2019_DAMBREAK_MAP_WASM_FAIL save\n";
+            sph_destroy();
+            return 95;
+        }
+
+        const float mapMs = sph_last_bender_map_build_ms();
+        const int steps = sph_step(1);
+        const float volumeSum = sph_bender_boundary_volume_sum();
+        const float minY = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            boxes == 1 &&
+            count == 729 &&
+            sph_boundary_model_count() == 1 &&
+            sph_boundary_handling_method() == 2 &&
+            steps == 1 &&
+            sph_all_finite() &&
+            std::isfinite(volumeSum) &&
+            volumeSum > 0.0f &&
+            minY > -0.05f &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_BENDER2019_DAMBREAK_MAP_WASM_FAIL"
+                      << " particles=" << count
+                      << " steps=" << steps
+                      << " mapMs=" << mapMs
+                      << " volumeSum=" << volumeSum
+                      << " minY=" << minY
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 96;
+        }
+
+        std::cout << "SPLISHSPLASH_BENDER2019_DAMBREAK_MAP_WASM_OK"
+                  << " particles=" << count
+                  << " steps=" << steps
+                  << " mapResolution=40x30x15"
+                  << " mapSource=" << (cachedMap ? "cache" : "generated")
+                  << " mapMs=" << mapMs
+                  << " volumeSum=" << volumeSum
+                  << " minY=" << minY
+                  << " time=" << time << "\n";
+        sph_destroy();
+    }
+
     return 0;
 }
