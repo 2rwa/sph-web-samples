@@ -89,6 +89,8 @@ float sph_min_y();
 float sph_max_x();
 float sph_time();
 int sph_all_finite();
+int sph_surface_tension_method();
+int sph_surface_parameter_missing_count();
 int sph_simulation_method();
 float sph_standard_viscosity();
 int sph_solver_iterations();
