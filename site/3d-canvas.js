@@ -1,4 +1,4 @@
-import init, { Simulation3d } from "./pkg/sph_web_samples.js?v=1.03";
+import init, { Simulation3d } from "./pkg/sph_web_samples.js?v=1.04";
 
 const canvas = document.querySelector("#view");
 const status = document.querySelector("#status");
@@ -165,7 +165,7 @@ resetButton.addEventListener("click", () => {
 });
 
 async function main() {
-  await init("./pkg/sph_web_samples_bg.wasm?v=1.03");
+  await init(new URL("./pkg/sph_web_samples_bg.wasm?v=1.04", import.meta.url));
   sim = new Simulation3d();
 
   const fixedDt = 1 / 200;

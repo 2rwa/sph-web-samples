@@ -1,4 +1,4 @@
-import init, { InteractiveSimulation } from "./pkg/sph_web_samples.js?v=1.02";
+import init, { InteractiveSimulation } from "./pkg/sph_web_samples.js?v=1.04";
 
 const canvas = document.querySelector("#view");
 const status = document.querySelector("#status");
@@ -219,7 +219,7 @@ canvas.addEventListener("pointercancel", () => {
 });
 
 async function main() {
-  await init("./pkg/sph_web_samples_bg.wasm?v=1.02");
+  await init(new URL("./pkg/sph_web_samples_bg.wasm?v=1.04", import.meta.url));
   sim = new InteractiveSimulation();
 
   function frame(now) {
