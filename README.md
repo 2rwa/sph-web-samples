@@ -33,6 +33,12 @@ Small browser experiments for SPH implementations.
   - The render pass performs fixed-step iso-surface raymarching with binary hit refinement.
   - The density field is explicitly treated as non-SDF; no sphere tracing is used.
   - Kernel radius and iso threshold are interactive.
+- [Faucet atomic-splat raymarch](./site/samples/salva-3d-webgpu-faucet/)
+  - Reuses the continuously emitting official Faucet simulation.
+  - Each particle splats fixed-point density only into neighboring voxels using `atomic<u32>`.
+  - A normalize compute pass writes a 40×96×40 `r32float` 3D texture.
+  - The same fixed-step + binary-refinement raymarch strategy extracts the liquid surface.
+  - The upstream spherical obstacle is rendered analytically.
 
 ## WebGL2 examples3d ports
 
