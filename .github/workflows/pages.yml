@@ -50,7 +50,7 @@ jobs:
       - name: Test generated page contract
         run: node tests/page_contract.mjs
 
-      - name: Validate WebGPU surface-tension raymarch
+      - name: Validate WebGPU raymarch samples
         shell: bash
         run: |
           set -euxo pipefail
@@ -86,6 +86,12 @@ jobs:
           trap cleanup EXIT
 
           if ! node tests/webgpu_surface_tension_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
+
+          if ! node tests/webgpu_faucet_cdp.mjs; then
             cat /tmp/sph-http.log || true
             cat /tmp/chrome.log || true
             exit 1
