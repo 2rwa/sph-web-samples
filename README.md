@@ -44,6 +44,11 @@ Small browser experiments for SPH implementations.
   - Each elastic body owns an independent fixed-point atomic density buffer and 56×72×56 `r32float` texture.
   - The raymarch pass tracks both iso-surfaces independently and colors them separately.
   - This prevents the two elastic bodies from visually merging into one implicit density field.
+- [Height field hybrid raymarch](./site/samples/salva-3d-webgpu-heightfield/)
+  - Reuses the 3,375-particle official Height field simulation.
+  - Fluid particles splat into a 64³ fixed-point atomic density grid and `r32float` texture.
+  - The terrain is evaluated procedurally from the upstream `sin(x)+cos(z)` height formula and raised border.
+  - Fluid and terrain are raymarched independently and the nearest hit is shaded.
 
 ## WebGL2 examples3d ports
 
