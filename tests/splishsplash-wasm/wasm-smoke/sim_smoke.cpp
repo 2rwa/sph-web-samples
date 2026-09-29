@@ -1378,7 +1378,7 @@ int main()
              0.0f, 0.0f, 0.0f,
              0);
 
-        const char* mapFile = "sphere-s1-r20-i0-t0.cdm";
+        const char* mapFile = "sphere-v2p18p1-pr0p02-s1x1x1-r20x20x20-i0-t0.cdm";
         const bool cachedMap = std::ifstream(mapFile, std::ios::binary).good();
         const int meshes = cachedMap
             ? sph_scene_add_mesh_bender_file(

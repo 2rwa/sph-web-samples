@@ -309,7 +309,27 @@ export function buildSceneFromIR(Module, ir) {
 }
 
 
-function benderMapKey(body) {
+function mapKeyNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "nan";
+  return String(n)
+    .replaceAll("-", "m")
+    .replaceAll(".", "p")
+    .replaceAll("+", "");
+}
+
+function genericMeshMapKey(body, particleRadius) {
+  const rawName = body.geometryFile?.split("/").pop() ?? "mesh.obj";
+  const baseName = rawName.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]/g, "_");
+  const s = body.scale.map((v) => mapKeyNumber(v)).join("x");
+  const r = body.mapResolution.map((v) => Math.trunc(Number(v))).join("x");
+  const invert = body.mapInvert ? 1 : 0;
+  const thickness = mapKeyNumber(body.mapThickness);
+  const pr = mapKeyNumber(particleRadius);
+  return `${baseName}-v2p18p1-pr${pr}-s${s}-r${r}-i${invert}-t${thickness}.cdm`;
+}
+
+function benderMapKey(body, particleRadius) {
   const s = body.scale.map((v) => Number(v));
   const r = body.mapResolution.map((v) => Number(v));
   if (
@@ -336,14 +356,8 @@ function benderMapKey(body) {
   ) {
     return "unitbox-3x0p5x3-r20-i0-t0.cdm";
   }
-  if (
-    body.geometryFile?.endsWith("sphere.obj") &&
-    s[0] === 1 && s[1] === 1 && s[2] === 1 &&
-    r[0] === 20 && r[1] === 20 && r[2] === 20 &&
-    body.mapInvert === false &&
-    Number(body.mapThickness) === 0
-  ) {
-    return "sphere-s1-r20-i0-t0.cdm";
+  if (!body.geometryFile?.endsWith("UnitBox.obj")) {
+    return genericMeshMapKey(body, particleRadius);
   }
   return null;
 }
@@ -359,7 +373,7 @@ export async function prepareBender2019Maps(Module, ir) {
       throw new Error("Bender2019 browser bridge currently supports static unrotated rigid bodies only");
     }
 
-    const key = benderMapKey(body);
+    const key = benderMapKey(body, ir.configuration.particleRadius);
     if (!key) {
       throw new Error(`No precomputed Bender2019 map for scale=${body.scale.join("x")} resolution=${body.mapResolution.join("x")}`);
     }

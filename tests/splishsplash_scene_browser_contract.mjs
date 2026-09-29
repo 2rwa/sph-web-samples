@@ -33,7 +33,8 @@ assert.match(runtime, /Bender2019 rigid-body volume map loaded from precomputed 
 assert.match(runtime, /sph_scene_set_iisph/);
 assert.match(runtime, /sph_scene_set_peer2015_viscosity/);
 assert.match(runtime, /unitbox-3x0p5x3-r20-i0-t0\.cdm/);
-assert.match(runtime, /sphere-s1-r20-i0-t0\.cdm/);
+assert.match(runtime, /genericMeshMapKey/);
+assert.match(runtime, /v2p18p1-pr/);
 assert.match(runtime, /sph_scene_add_mesh_bender_file/);
 
 assert.match(runtime, /sph_scene_set_peer2016_viscosity/);
