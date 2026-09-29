@@ -12,7 +12,8 @@ BUILD_STAMP="$WORK_ROOT/build-input.sha256"
 UPSTREAM_TAG="2.18.1"
 
 rm -rf "$OUT_DIR" "$SITE_VENDOR_DIR"
-mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR"
+MAP_DIR="$WORK_ROOT/maps"
+mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR" "$MAP_DIR"
 
 echo "== toolchain =="
 EMCC_VERSION="$(emcc --version | head -1)"
@@ -197,6 +198,9 @@ fi
 run_node_probe "$KERNEL_JS" "SPLISHSPLASH_WASM_SMOKE_OK" "kernel-runtime.log"
 
 echo "== execute real WCSPH simulation smoke under Node =="
-run_node_probe "$SIM_JS" "SPLISHSPLASH_SIM_WASM_OK" "simulation-runtime.log"
+(
+  cd "$MAP_DIR"
+  run_node_probe "$SIM_JS" "SPLISHSPLASH_SIM_WASM_OK" "simulation-runtime.log"
+)
 
 echo "SPlisHSPlasH WebAssembly build + WCSPH simulation probes passed."

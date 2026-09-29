@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
 extern "C" {
 int sph_init(int side);
@@ -45,6 +46,11 @@ int sph_scene_add_unit_box_bender(
     unsigned int resolutionZ,
     int mapInvert,
     float mapThickness);
+int sph_scene_add_unit_box_bender_file(
+    float tx, float ty, float tz,
+    float sx, float sy, float sz,
+    const char* mapFile);
+int sph_save_last_bender_map(const char* mapFile);
 int sph_scene_commit();
 int sph_step(int steps);
 int sph_particle_count();
@@ -583,13 +589,26 @@ int main()
              1.0f, 1.0f, 1.0f,
              0.0f, 0.0f, 0.0f,
              0);
-        const int boxes = sph_scene_add_unit_box_bender(
-            0.0f, 1.5f, 0.0f,
-            3.1f, 3.1f, 3.1f,
-            25u, 25u, 25u,
-            1, 0.0f);
+        const char* mapFile = "unitbox-3p1-r25-i1-t0.cdm";
+        const bool cachedMap = std::ifstream(mapFile, std::ios::binary).good();
+        const int boxes = cachedMap
+            ? sph_scene_add_unit_box_bender_file(
+                0.0f, 1.5f, 0.0f,
+                3.1f, 3.1f, 3.1f,
+                mapFile)
+            : sph_scene_add_unit_box_bender(
+                0.0f, 1.5f, 0.0f,
+                3.1f, 3.1f, 3.1f,
+                25u, 25u, 25u,
+                1, 0.0f);
 
         const int count = sph_scene_commit();
+        if (!cachedMap && !sph_save_last_bender_map(mapFile))
+        {
+            std::cerr << "SPLISHSPLASH_BENDER2019_MAP_WASM_FAIL save\n";
+            sph_destroy();
+            return 93;
+        }
         const float mapMs = sph_last_bender_map_build_ms();
         const int boundaryModels = sph_boundary_model_count();
         const int boundaryMethod = sph_boundary_handling_method();
@@ -645,6 +664,7 @@ int main()
                   << " particles=" << count
                   << " steps=" << steps
                   << " mapResolution=25x25x25"
+                  << " mapSource=" << (cachedMap ? "cache" : "generated")
                   << " mapMs=" << mapMs
                   << " volumeSum=" << volumeSum
                   << " minY=" << minY1

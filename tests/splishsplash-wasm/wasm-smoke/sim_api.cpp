@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cmath>
 #include <set>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -63,6 +64,7 @@ struct PendingUnitBox
     unsigned int resolutionZ;
     bool mapInvert;
     Real mapThickness;
+    std::string mapFile;
 };
 
 std::vector<PendingFluidBlock> g_pending_blocks;
@@ -323,7 +325,10 @@ void add_bender_box_boundary(const PendingUnitBox& box)
     bm->initModel(rb);
 
     const auto begin = std::chrono::steady_clock::now();
-    bm->setMap(make_bender_box_volume_map(box));
+    if (!box.mapFile.empty())
+        bm->setMap(new Discregrid::CubicLagrangeDiscreteGrid(box.mapFile));
+    else
+        bm->setMap(make_bender_box_volume_map(box));
     const auto end = std::chrono::steady_clock::now();
     g_last_bender_map_build_ms =
         std::chrono::duration<double, std::milli>(end - begin).count();
@@ -888,6 +893,7 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box(
     box.resolutionZ = 0u;
     box.mapInvert = false;
     box.mapThickness = static_cast<Real>(0.0);
+    box.mapFile.clear();
     g_pending_boxes.push_back(box);
     return static_cast<int>(g_pending_boxes.size());
 }
@@ -915,8 +921,40 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender(
     box.resolutionZ = resolutionZ;
     box.mapInvert = mapInvert != 0;
     box.mapThickness = static_cast<Real>(mapThickness);
+    box.mapFile.clear();
     g_pending_boxes.push_back(box);
     return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box_bender_file(
+    const float tx, const float ty, const float tz,
+    const float sx, const float sy, const float sz,
+    const char* mapFile)
+{
+    if (!g_builder_active || mapFile == nullptr || mapFile[0] == '\0')
+        return 0;
+
+    PendingUnitBox box;
+    box.translation = Vector3r(tx, ty, tz);
+    box.scale = Vector3r(sx, sy, sz);
+    box.useBender = true;
+    box.resolutionX = 0u;
+    box.resolutionY = 0u;
+    box.resolutionZ = 0u;
+    box.mapInvert = true;
+    box.mapThickness = static_cast<Real>(0.0);
+    box.mapFile = mapFile;
+    g_pending_boxes.push_back(box);
+    return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_save_last_bender_map(const char* mapFile)
+{
+    if (!g_boundary_bender || !g_boundary_bender->getMap() ||
+        mapFile == nullptr || mapFile[0] == '\0')
+        return 0;
+    g_boundary_bender->getMap()->save(mapFile);
+    return 1;
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_scene_commit()
