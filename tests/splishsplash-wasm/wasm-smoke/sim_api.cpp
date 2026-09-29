@@ -2,6 +2,7 @@
 
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/TimeManager.h"
+#include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/FluidModel.h"
 
 #include <algorithm>
