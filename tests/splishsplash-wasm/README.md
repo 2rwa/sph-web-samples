@@ -112,3 +112,24 @@ boundaryVolume sum > 0 after the first WCSPH step
 The map uses an analytic axis-aligned box SDF, then the same Discregrid field construction and `GaussQuadrature::integrate(..., 30)` volume integration used by upstream `SimulatorBase::initVolumeMap()`.
 
 The next optimization serializes that Discregrid map as `.cdm` under the Actions build cache. A repeated probe should report `mapSource=cache` rather than regenerating the field.
+
+
+### Serialized Bender2019 map cache verification
+
+The Node/WASM regression now uses `-sNODERAWFS=1`, so Discregrid `.cdm`
+files written by the simulation smoke test persist in the host-side
+`.cache/splishsplash-wasm-probe/maps/` directory.
+
+Reference first-generation run:
+
+```text
+WASM probe #29
+mapSource=generated
+mapResolution=25x25x25
+mapMs=9388.88
+volumeSum=0.0765775
+```
+
+The next identical-input probe is expected to restore the same Actions cache,
+report `WASM_BUILD_CACHE_EXACT_HIT`, and load the serialized map with
+`mapSource=cache`.
