@@ -190,6 +190,8 @@ std::vector<Vector3r> make_open_box_boundary(const Real spacing)
 }
 
 
+void add_akinci_boundary(const std::vector<Vector3r>& boundaryParticles);
+
 std::vector<Vector3r> make_unit_box_boundary(
     const Vector3r& translation,
     const Vector3r& scale,
