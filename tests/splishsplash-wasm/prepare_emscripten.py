@@ -64,12 +64,17 @@ else:
     raise SystemExit(f"unknown dependency kind: {kind}")
 
 text = path.read_text()
+replacement = "# OpenMP disabled for the Emscripten single-thread WASM probe.\\n\\n"
+
+if replacement in text:
+    print(f"OpenMP requirement already disabled in {path}")
+    raise SystemExit(0)
+
 start = text.find(start_marker)
 end = text.find(end_marker, start + 1)
 if start < 0 or end < 0:
     raise RuntimeError(f"OpenMP block markers not found in {path}")
 
-replacement = "# OpenMP disabled for the Emscripten single-thread WASM probe.\\n\\n"
 path.write_text(text[:start] + replacement + text[end:])
 print(f"Disabled OpenMP requirement in {path}")
 """
