@@ -84,3 +84,31 @@ The first regression scene mirrors upstream `CompressibleSPH_WCSPH.json`:
 - upstream Bender2019 UnitBox explicitly substituted by a sampled Akinci2012 UnitBox bridge.
 
 The bridge substitution is a browser compatibility layer, not a modification of the source JSON.
+
+
+## Additional solver coverage
+
+The generic Scene JSON ABI now has Node/WASM regressions for:
+
+- WCSPH (`simulationMethod=0`)
+- DFSPH (`simulationMethod=4`)
+- Projective Fluids (`simulationMethod=5`)
+- ICSPH (`simulationMethod=6`)
+
+The ICSPH and Projective Fluids checks use the same 9,826-particle opposing-block layout as the upstream compressible-SPH demo family and assert the actual simulation method and solver iteration count after stepping.
+
+## Bender2019 volume-map probe
+
+A separate regression path calls real `BoundaryModel_Bender2019` instead of the sampled Akinci2012 compatibility bridge.
+
+For the first 3.1 × 3.1 × 3.1 UnitBox probe:
+
+```text
+mapResolution=25x25x25
+first generation ≈ 12.4 s in WASM on GitHub Actions
+boundaryVolume sum > 0 after the first WCSPH step
+```
+
+The map uses an analytic axis-aligned box SDF, then the same Discregrid field construction and `GaussQuadrature::integrate(..., 30)` volume integration used by upstream `SimulatorBase::initVolumeMap()`.
+
+The next optimization serializes that Discregrid map as `.cdm` under the Actions build cache. A repeated probe should report `mapSource=cache` rather than regenerating the field.

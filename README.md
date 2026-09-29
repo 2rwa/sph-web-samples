@@ -28,8 +28,10 @@ Small browser experiments for SPH implementations.
 ## SPlisHSPlasH WebAssembly
 
 - [SPlisHSPlasH upstream Scene JSON browser](./site/tests/splishsplash-scene-browser/)
-  - One browser page / one WASM core can rebuild and switch between `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
-  - CI switches WCSPH → DFSPH → DFSPH in one Emscripten module and advances each scene without scene-specific C++ initialization.
+  - One browser page / one WASM core can rebuild and switch among five unedited upstream fixtures.
+  - Solvers currently validated through the generic ABI: WCSPH, DFSPH, ICSPH, and Projective Fluids.
+  - Fixtures: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, `DoubleDamBreak.json`, `CompressibleSPH_ICSPH.json`, and `CompressibleSPH_PF.json`.
+  - CI rebuilds all five scenes sequentially in one Emscripten module without scene-specific C++ initialization.
 
 
 - [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)
@@ -66,6 +68,14 @@ Small browser experiments for SPH implementations.
   - Reads the unedited upstream `DoubleDamBreak.json`.
   - Reuses the same generic DFSPH ABI with two fluid blocks.
   - Expected browser scene: 7,200 fluid particles and 23,066 sampled UnitBox boundary particles.
+
+### Bender2019 volume-map probe
+
+- A separate WASM regression now constructs a real upstream `BoundaryModel_Bender2019`.
+- The current probe uses an analytic UnitBox SDF but the upstream Discregrid volume-map construction and Gauss quadrature.
+- At upstream-style 25³ map resolution, the first WASM generation measured about 12.4 seconds on GitHub Actions.
+- The generated map produces a positive boundary-volume contribution during a real WCSPH step.
+- Because generation is too expensive for every browser scene load, the next bridge serializes the Discregrid `.cdm` map into the Actions build cache and reloads it.
 
 See [SPLISHSPLASH_WASM_MILESTONE_20260929.md](./SPLISHSPLASH_WASM_MILESTONE_20260929.md) for the frozen WASM milestone and [SCENE_JSON_BROWSER_PLAN.md](./SCENE_JSON_BROWSER_PLAN.md) for the next architecture phase.
 

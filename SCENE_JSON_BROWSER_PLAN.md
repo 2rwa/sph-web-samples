@@ -80,7 +80,7 @@ It should distinguish:
 
 - Phase 1 JavaScript parser / normalized IR: implemented for the first three fixtures.
 - Phase 2 generic C ABI: WCSPH and DFSPH builders implemented.
-- End-to-end targets: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
+- End-to-end targets: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, `DoubleDamBreak.json`, `CompressibleSPH_ICSPH.json`, and `CompressibleSPH_PF.json`.
 - The browser currently substitutes static unrotated Bender2019 UnitBox walls with sampled Akinci2012 UnitBox particles and reports that substitution explicitly.
 - The first bridge also caps the effective CFL max at 0.001 while preserving the source JSON value for diagnostics.
 
@@ -135,7 +135,7 @@ First implement a deterministic browser bridge for the known static UnitBox wall
 - keep the original JSON values visible,
 - record whether the representation is exact or an approximation.
 
-After that, consider the upstream Bender2019 volume-map path.
+The upstream Bender2019 volume-map path is now proven in a separate WASM regression. A 25³ UnitBox map generated in about 12.4 seconds and contributed non-zero boundary volume during a real solver step. Browser integration should therefore preload/cache serialized `.cdm` maps rather than reconstruct them on every scene load.
 
 ## Phase 4 — method coverage
 
@@ -154,7 +154,7 @@ Each method gets a small Node/WASM regression before being exposed in the browse
 
 ## Phase 5 — browser Demo shell
 
-Current first pass: a shared scene browser switches the three validated upstream fixtures in one Emscripten module. CI rebuilds all three scenes sequentially through the generic ABI.
+Current first pass: a shared scene browser switches five validated upstream fixtures in one Emscripten module. CI rebuilds all five scenes sequentially through the generic ABI.
 
 
 

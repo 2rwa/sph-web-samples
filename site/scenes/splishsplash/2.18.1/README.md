@@ -12,5 +12,7 @@ Fixtures:
 - `CompressibleSPH_WCSPH.json`
 - `DamBreakModel.json`
 - `DoubleDamBreak.json`
+- `CompressibleSPH_ICSPH.json`
+- `CompressibleSPH_PF.json`
 
 The browser adapter must preserve the original JSON meaning. If a browser-side bridge substitutes a desktop implementation detail, that substitution must be reported explicitly by the compatibility layer rather than silently rewriting the fixture.
