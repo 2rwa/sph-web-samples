@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Salva WASM Benchmark — SPH Web Samples</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d10; color: #dce7f2; }
+    main { width: min(94vw, 960px); }
+    h1 { margin: 0 0 .35rem; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    p { margin: .25rem 0 .8rem; color: #91a4b7; }
+    a { color: #9bd4ff; }
+    .controls { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: center; margin: 1rem 0; }
+    input[type="range"] { width: 100%; }
+    output { min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
+    canvas { width: 100%; aspect-ratio: 4 / 3; display: block; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
+    #status { margin-top: .55rem; min-height: 1.2em; font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="../../">← SPH Web Samples</a></p>
+    <h1>Salva 2D WASM benchmark</h1>
+    <p>One SPH step per animation frame. The slider rebuilds the Salva world at the selected particle count.</p>
+    <label class="controls" for="particle-count">
+      <span>Particles</span>
+      <input id="particle-count" type="range" min="100" max="10000" step="100" value="100">
+      <output id="particle-count-value" for="particle-count">100</output>
+    </label>
+    <canvas id="view" width="800" height="600" aria-label="SPH benchmark particle simulation"></canvas>
+    <div id="status">Loading WASM…</div>
+  </main>
+  <script type="module" src="../../benchmark.js"></script>
+</body>
+</html>
