@@ -6,6 +6,9 @@
 #include "Simulation/Simulation.h"
 #include "Simulation/SimulationModel.h"
 #include "Simulation/TimeManager.h"
+#include "Utils/Timing.h"
+
+INIT_TIMING
 
 int main()
 {
