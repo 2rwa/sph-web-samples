@@ -440,7 +440,7 @@ function rebuildVolumeResources(nextDims){
     {binding:2,resource:{buffer:densityAtoms}},{binding:3,resource:{buffer:speedAtoms}},
     {binding:4,resource:densityView},{binding:5,resource:speedView},{binding:6,resource:{buffer:densityParamsBuffer}}
   ]});
-  renderBindGroup=device.createBindGroup({layout:renderPipeline.getBindGroupLayout(0),entries:[
+  renderBindGroup=device.createBindGroup({layout:renderPipeline._sharedBindGroupLayout ?? renderPipeline.getBindGroupLayout(0),entries:[
     {binding:0,resource:densityView},{binding:1,resource:speedView},{binding:2,resource:{buffer:renderParamsBuffer}}
   ]});
 }
@@ -469,7 +469,14 @@ async function createPipelines(){
   clearPipeline=device.createComputePipeline({layout,compute:{module:densityModule,entryPoint:"clearDensityMain"}});
   splatPipeline=device.createComputePipeline({layout,compute:{module:densityModule,entryPoint:"splatParticlesMain"}});
   normalizePipeline=device.createComputePipeline({layout,compute:{module:densityModule,entryPoint:"normalizeDensityMain"}});
-  renderPipeline=device.createRenderPipeline({layout:"auto",vertex:{module:renderModule,entryPoint:"fullScreenVertex"},fragment:{module:renderModule,entryPoint:"raymarchFragment",targets:[{format:outputFormat}]},primitive:{topology:"triangle-list"}});
+  const renderBindGroupLayout=device.createBindGroupLayout({entries:[
+    {binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"unfilterable-float",viewDimension:"3d"}},
+    {binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"unfilterable-float",viewDimension:"3d"}},
+    {binding:2,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},
+  ]});
+  const renderLayout=device.createPipelineLayout({bindGroupLayouts:[renderBindGroupLayout]});
+  renderPipeline=device.createRenderPipeline({layout:renderLayout,vertex:{module:renderModule,entryPoint:"fullScreenVertex"},fragment:{module:renderModule,entryPoint:"raymarchFragment",targets:[{format:outputFormat}]},primitive:{topology:"triangle-list"}});
+  renderPipeline._sharedBindGroupLayout=renderBindGroupLayout;
   rebuildVolumeResources(gridDims);
 }
 
