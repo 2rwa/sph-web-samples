@@ -1792,6 +1792,42 @@ EMSCRIPTEN_KEEPALIVE float sph_bender_boundary_rotation_angle()
         Eigen::AngleAxis<Real>(q).angle());
 }
 
+EMSCRIPTEN_KEEPALIVE int sph_bender_set_animated_motion(
+    const float vx, const float vy, const float vz,
+    const float wx, const float wy, const float wz)
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject())
+        return 0;
+
+    StaticRigidBody* rb = static_cast<StaticRigidBody*>(
+        g_boundary_bender->getRigidBodyObject());
+    rb->setIsAnimated(true);
+    rb->setVelocity(Vector3r(vx, vy, vz));
+    rb->setAngularVelocity(Vector3r(wx, wy, wz));
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_bender_animate()
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject())
+        return 0;
+
+    StaticRigidBody* rb = static_cast<StaticRigidBody*>(
+        g_boundary_bender->getRigidBodyObject());
+    if (!rb->isAnimated())
+        return 0;
+    rb->animate();
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_bender_boundary_position_x()
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject())
+        return 0.0f;
+    return static_cast<float>(
+        g_boundary_bender->getRigidBodyObject()->getPosition()[0]);
+}
+
 EMSCRIPTEN_KEEPALIVE float sph_last_bender_map_build_ms()
 {
     return static_cast<float>(g_last_bender_map_build_ms);
