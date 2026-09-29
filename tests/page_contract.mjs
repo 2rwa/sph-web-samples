@@ -19,6 +19,8 @@ const benchmarkApp = readFileSync("site/benchmark.js", "utf8");
 const interactiveApp = readFileSync("site/interactive-obstacles.js", "utf8");
 const app3d = readFileSync("site/3d-canvas.js", "utf8");
 const webgl3dApp = readFileSync("site/3d-webgl2.js", "utf8");
+const webgpuSurface = readFileSync("site/samples/salva-3d-webgpu-surface-tension/index.html", "utf8");
+const webgpuSurfaceApp = readFileSync("site/3d-webgpu-surface-tension.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
 const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
 const official3dApp = readFileSync("site/official-examples3d.js", "utf8");
@@ -74,6 +76,7 @@ assert.match(top, /href="\.\/samples\/salva-official-3d-elasticity\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-3d-faucet\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-3d-heightfield\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-3d-surface-tension\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgpu-surface-tension\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -147,6 +150,35 @@ assert.match(webgl3dApp, /sph_web_samples\.js\?v=1\.41/);
 assert.match(webgl3dApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.41", import\.meta\.url\)/);
 assert.doesNotMatch(webgl3dApp, /projected\.sort/);
 
+assert.match(webgpuSurface, /data-webgpu-raymarch="surface-tension"/);
+assert.match(webgpuSurface, /<canvas\s+id="view"/);
+assert.match(webgpuSurface, /Kernel radius/);
+assert.match(webgpuSurface, /Iso level/);
+assert.match(webgpuSurface, /48³ density grid/);
+assert.match(webgpuSurface, /3d-webgpu-surface-tension\.js\?v=1\.50/);
+assert.match(webgpuSurfaceApp, /OfficialExample3dSimulation/);
+assert.match(webgpuSurfaceApp, /new OfficialExample3dSimulation\("surface-tension"\)/);
+assert.match(webgpuSurfaceApp, /navigator\.gpu/);
+assert.match(webgpuSurfaceApp, /requestAdapter\(\)/);
+assert.match(webgpuSurfaceApp, /requestDevice\(\)/);
+assert.match(webgpuSurfaceApp, /texture_storage_3d<r32float, write>/);
+assert.match(webgpuSurfaceApp, /texture_3d<f32>/);
+assert.match(webgpuSurfaceApp, /@compute/);
+assert.match(webgpuSurfaceApp, /textureStore/);
+assert.match(webgpuSurfaceApp, /textureLoad/);
+assert.match(webgpuSurfaceApp, /rayBoxInterval/);
+assert.match(webgpuSurfaceApp, /refineDensityHit/);
+assert.match(webgpuSurfaceApp, /marchDensity/);
+assert.match(webgpuSurfaceApp, /GPUTextureUsage\.STORAGE_BINDING/);
+assert.match(webgpuSurfaceApp, /GPUTextureUsage\.TEXTURE_BINDING/);
+assert.match(webgpuSurfaceApp, /GPUTextureUsage\.RENDER_ATTACHMENT/);
+assert.match(webgpuSurfaceApp, /getCompilationInfo/);
+assert.match(webgpuSurfaceApp, /pushErrorScope\("validation"\)/);
+assert.match(webgpuSurfaceApp, /queue\.onSubmittedWorkDone\(\)/);
+assert.match(webgpuSurfaceApp, /sph_web_samples\.js\?v=1\.50/);
+assert.match(webgpuSurfaceApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.50", import\.meta\.url\)/);
+assert.doesNotMatch(webgpuSurfaceApp, /t\s*\+=\s*density/);
+
 for (const [mode, html] of Object.entries(officialPages)) {
   assert.match(html, new RegExp(`data-example="${mode}"`));
   assert.match(html, /<canvas\s+id="view"/);
@@ -204,4 +236,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + twenty-six samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + twenty-seven samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
