@@ -273,7 +273,7 @@ int create_dambreak_simulation(const int requestedResolution)
     wcsph->setValue(TimeStepWCSPH::STIFFNESS, static_cast<Real>(25000.0));
     wcsph->setValue(TimeStepWCSPH::EXPONENT, static_cast<Real>(1.0));
     g_sim->setValue(Simulation::CFL_FACTOR, static_cast<Real>(1.0));
-    g_sim->setValue(Simulation::CFL_MAX_TIMESTEPSIZE, static_cast<Real>(0.005));
+    g_sim->setValue(Simulation::CFL_MAX_TIMESTEPSIZE, static_cast<Real>(0.001));
     g_sim->setSimulationInitialized(1);
 
     const std::vector<Vector3r> boundaryParticles = make_open_box_boundary(particleRadius);

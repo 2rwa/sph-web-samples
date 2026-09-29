@@ -197,7 +197,7 @@ async function boot() {
     if (new URLSearchParams(location.search).get("ci") === "1") {
       running = false;
       const t0 = performance.now();
-      Module._sph_step(220);
+      Module._sph_step(320);
       const elapsed = performance.now() - t0;
       updateMetrics(elapsed);
       draw();
@@ -206,11 +206,11 @@ async function boot() {
       const ok =
         Module._sph_particle_count() === 432 &&
         Module._sph_boundary_count() > 1000 &&
-        Module._sph_step_count() === 220 &&
+        Module._sph_step_count() === 320 &&
         Module._sph_all_finite() &&
-        Module._sph_time() > 0.25 &&
+        Module._sph_time() > 0.28 &&
         Number.isFinite(minY) &&
-        minY > -0.25;
+        minY > -0.15;
 
       statusEl.textContent = ok
         ? "CI SPlisHSPlasH Dam Break ok"

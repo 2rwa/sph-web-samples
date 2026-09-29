@@ -112,19 +112,19 @@ int main()
                   << " time=" << sph_time()
                   << "\n";
 
-        const int finalSteps = sph_step(190);
+        const int finalSteps = sph_step(290);
         const float minY = sph_min_y();
         const float maxX = sph_max_x();
         const float time = sph_time();
 
         const bool ok =
-            finalSteps == 220 &&
+            finalSteps == 320 &&
             sph_all_finite() &&
             std::isfinite(minY) &&
             std::isfinite(maxX) &&
             std::isfinite(time) &&
-            time > 0.25f &&
-            minY > -0.25f;
+            time > 0.28f &&
+            minY > -0.15f;
 
         if (!ok)
         {
