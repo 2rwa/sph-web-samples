@@ -22,6 +22,14 @@ assert.match(app, /_sph_step/);
 assert.match(app, /_sph_positions_ptr/);
 assert.match(app, /HEAPF32/);
 assert.match(app, /CI SPlisHSPlasH browser ok/);
+assert.match(app, /new URL\(`\.\/vendor\/splishsplash\/\$\{path\}`, import\.meta\.url\)\.href/);
+assert.doesNotMatch(app, /new URL\("\.\.\/\.\.\/", import\.meta\.url\)/);
+
+const pagesBase = new URL("https://2rwa.github.io/sph-web-samples/splishsplash-wasm-demo.js");
+assert.equal(
+  new URL("./vendor/splishsplash/splishsplash_browser.wasm", pagesBase).href,
+  "https://2rwa.github.io/sph-web-samples/vendor/splishsplash/splishsplash_browser.wasm",
+);
 
 assert.match(glue, /createSPlisHSPlasH/);
 assert.ok(statSync(gluePath).size > 50_000, "browser JS glue unexpectedly small");

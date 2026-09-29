@@ -17,5 +17,13 @@ assert.match(app, /_sph_boundary_positions_ptr/);
 assert.match(app, /_sph_min_y/);
 assert.match(app, /CI SPlisHSPlasH Dam Break ok/);
 assert.match(app, /_sph_step\(220\)/);
+assert.match(app, /new URL\(`\.\/vendor\/splishsplash\/\$\{path\}`, import\.meta\.url\)\.href/);
+assert.doesNotMatch(app, /new URL\("\.\.\/\.\.\/", import\.meta\.url\)/);
+
+const pagesBase = new URL("https://2rwa.github.io/sph-web-samples/splishsplash-dambreak.js");
+assert.equal(
+  new URL("./vendor/splishsplash/splishsplash_browser.wasm", pagesBase).href,
+  "https://2rwa.github.io/sph-web-samples/vendor/splishsplash/splishsplash_browser.wasm",
+);
 
 console.log("SPlisHSPlasH Dam Break page contract ok");

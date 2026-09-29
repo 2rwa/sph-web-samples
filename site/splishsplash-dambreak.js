@@ -188,7 +188,7 @@ async function boot() {
     statusEl.textContent = "Instantiating SPlisHSPlasH WASM…";
     Module = await globalThis.createSPlisHSPlasH({
       locateFile(path) {
-        return new URL(`./vendor/splishsplash/${path}`, new URL("../../", import.meta.url)).href;
+        return new URL(`./vendor/splishsplash/${path}`, import.meta.url).href;
       },
     });
 
