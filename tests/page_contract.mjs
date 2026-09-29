@@ -31,6 +31,13 @@ const webgpuBasic = readFileSync("site/samples/salva-3d-webgpu-basic/index.html"
 const webgpuBasicApp = readFileSync("site/3d-webgpu-basic.js", "utf8");
 const webgpuCustomForces = readFileSync("site/samples/salva-3d-webgpu-custom-forces/index.html", "utf8");
 const webgpuCustomForcesApp = readFileSync("site/3d-webgpu-custom-forces.js", "utf8");
+const deepBasicQuality = readFileSync("site/samples/salva-3d-deep-basic-quality/index.html", "utf8");
+const deepFaucetVelocity = readFileSync("site/samples/salva-3d-deep-faucet-velocity/index.html", "utf8");
+const deepForceSlice = readFileSync("site/samples/salva-3d-deep-force-slice/index.html", "utf8");
+const deepHeightfieldSection = readFileSync("site/samples/salva-3d-deep-heightfield-section/index.html", "utf8");
+const deepElasticityMetrics = readFileSync("site/samples/salva-3d-deep-elasticity-metrics/index.html", "utf8");
+const deepDiveApp = readFileSync("site/3d-webgpu-deep-dive.js", "utf8");
+const elasticityMetricsApp = readFileSync("site/3d-elasticity-metrics.js", "utf8");
 const officialApp = readFileSync("site/official-examples2d.js", "utf8");
 const couplingApp = readFileSync("site/rapier-coupling.js", "utf8");
 const official3dApp = readFileSync("site/official-examples3d.js", "utf8");
@@ -92,6 +99,11 @@ assert.match(top, /href="\.\/samples\/salva-3d-webgpu-elasticity\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-heightfield\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-basic\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgpu-custom-forces\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-deep-basic-quality\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-deep-faucet-velocity\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-deep-force-slice\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-deep-heightfield-section\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-deep-elasticity-metrics\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -314,6 +326,58 @@ assert.match(webgpuCustomForcesApp, /sph_web_samples\.js\?v=2\.00/);
 assert.match(webgpuCustomForcesApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=2\.00", import\.meta\.url\)/);
 assert.doesNotMatch(webgpuCustomForcesApp, /t\s*\+=\s*density/);
 
+for (const [html, mode] of [
+  [deepBasicQuality, "basic-quality"],
+  [deepFaucetVelocity, "faucet-velocity"],
+  [deepForceSlice, "force-slice"],
+  [deepHeightfieldSection, "heightfield-section"],
+]) {
+  assert.match(html, new RegExp(`data-deep-dive="${mode}"`));
+  assert.match(html, /<canvas\s+id="view"/);
+  assert.match(html, /3d-webgpu-deep-dive\.js\?v=2\.10/);
+}
+assert.match(deepBasicQuality, /Quality preset/);
+assert.match(deepBasicQuality, /32³/);
+assert.match(deepBasicQuality, /64³/);
+assert.match(deepFaucetVelocity, /velocity-weighted volume/);
+assert.match(deepFaucetVelocity, /Speed scale/);
+assert.match(deepForceSlice, /force-field slice/);
+assert.match(deepForceSlice, /Slice Z/);
+assert.match(deepHeightfieldSection, /cutaway section/);
+assert.match(deepHeightfieldSection, /Section Z/);
+
+assert.match(deepDiveApp, /OfficialExample3dSimulation/);
+assert.match(deepDiveApp, /fluid_positions\(0\)/);
+assert.match(deepDiveApp, /fluid_velocities\(0\)/);
+assert.match(deepDiveApp, /array<atomic<u32>>/);
+assert.match(deepDiveApp, /densityAtoms/);
+assert.match(deepDiveApp, /speedAtoms/);
+assert.match(deepDiveApp, /speedVolume/);
+assert.match(deepDiveApp, /textureDimensions/);
+assert.match(deepDiveApp, /rebuildVolumeResources/);
+assert.match(deepDiveApp, /forceFieldVector/);
+assert.match(deepDiveApp, /terrainHeight/);
+assert.match(deepDiveApp, /sectionPlane/);
+assert.match(deepDiveApp, /pushErrorScope\("validation"\)/);
+assert.match(deepDiveApp, /queue\.onSubmittedWorkDone\(\)/);
+assert.match(deepDiveApp, /sph_web_samples\.js\?v=2\.10/);
+assert.match(deepDiveApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=2\.10", import\.meta\.url\)/);
+assert.doesNotMatch(deepDiveApp, /t\s*\+=\s*density/);
+
+assert.match(deepElasticityMetrics, /data-elasticity-metrics/);
+assert.match(deepElasticityMetrics, /Bounding-box stretch/);
+assert.match(deepElasticityMetrics, /RMS speed/);
+assert.match(deepElasticityMetrics, /<canvas\s+id="chart"/);
+assert.match(deepElasticityMetrics, /3d-elasticity-metrics\.js\?v=2\.10/);
+assert.match(elasticityMetricsApp, /new OfficialExample3dSimulation\("elasticity"\)/);
+assert.match(elasticityMetricsApp, /fluid_positions\(0\)/);
+assert.match(elasticityMetricsApp, /fluid_positions\(1\)/);
+assert.match(elasticityMetricsApp, /fluid_velocities\(0\)/);
+assert.match(elasticityMetricsApp, /fluid_velocities\(1\)/);
+assert.match(elasticityMetricsApp, /computeMetrics/);
+assert.match(elasticityMetricsApp, /stretchRatio/);
+assert.match(elasticityMetricsApp, /drawHistory/);
+
 for (const [mode, html] of Object.entries(officialPages)) {
   assert.match(html, new RegExp(`data-example="${mode}"`));
   assert.match(html, /<canvas\s+id="view"/);
@@ -371,4 +435,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + thirty-two samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + thirty-seven samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
