@@ -85,7 +85,12 @@ The expensive map-generation path also works in WASM; cached map loading is the
 normal browser path.
 
 The first general triangle-mesh Bender2019 path is now implemented.
-The current restriction is static, unrotated rigid bodies; rotation and dynamic/PBD coupling remain separate milestones.
+Static rigid bodies now support arbitrary axis-angle transforms while reusing the same local-space volume map.
+
+A core/WASM kinematic animation probe also succeeds by marking the existing
+`StaticRigidBody` as animated, assigning linear/angular velocity, and advancing
+it with `animate()`. This is an animated/kinematic boundary milestone only:
+two-way force feedback through a true dynamic `PBDRigidBody` is still separate.
 
 ## Surface tension milestone
 
@@ -279,6 +284,9 @@ High-value next targets:
    - required by several Jeske 2023 surface-tension examples
 
 5. Dynamic / animated rigid bodies and PBD coupling
+   - animated/kinematic `StaticRigidBody` motion: core/WASM probe passed
+   - browser Scene JSON wiring: pending
+   - true dynamic `PBDRigidBody` / PositionBasedDynamics coupling: pending
 
 6. Koschier2017 density maps
 
@@ -394,13 +402,95 @@ SPlisHSPlasH scene browser CI status: CI SPlisHSPlasH scene browser ok
 - mapThickness=0
 - Headless Chrome one-step regression passed in Pages #119
 
-## Next boundary step
+## Static rotation result
 
-Static rotation is the next small compatibility extension.
+Implemented commits:
 
-The Bender map remains in rigid-body local space, so rotation should not require
-regenerating the map. The wrapper only needs to carry Scene JSON
-`rotationAxis` / `rotationAngle` through to `StaticRigidBody` as a quaternion.
+- `998bd47769ed12cb5b533181028216a2d2aece8f` — axis-angle transforms for static Bender2019 boundaries
+- `b1760628bb3abbf897a0cb2b7e2f1b4ceff6bd0a` — close the rotation smoke-test main block
 
-A useful upstream regression candidate is `GridModel_Bender2019.json`, whose
-static UnitBox uses a nonzero rotation angle.
+Validation:
+
+- WASM build probe #44 — success
+- Pages #122 — success
+
+Reference regression:
+
+```text
+SPLISHSPLASH_ROTATED_BENDER_WASM_OK
+particles=1331
+boundaryModels=1
+axis=0,0,1
+expectedAngle=0.35
+actualAngle=0.35
+mapReuse=unitbox-3x0p5x3-r20-i0-t0.cdm
+steps=1
+time=0.001
+```
+
+The map stays in rigid-body local space. Rotation therefore does not require
+regenerating the Discregrid map.
+
+## Animated / kinematic boundary result
+
+Commit:
+
+- `49339e478d46da22f521db4e431f39315b1bf367` — minimal animated Bender2019 motion probe
+
+Validation:
+
+- WASM build probe #45 — success
+- Pages #123 — success
+
+Reference regression:
+
+```text
+SPLISHSPLASH_ANIMATED_BENDER_WASM_OK
+particles=1331
+boundaryModels=1
+vx=0.25
+wz=0.5
+x0=0
+x1=0.00025
+angle0=0
+angle1=0.0005
+mapReuse=unitbox-3x0p5x3-r20-i0-t0.cdm
+steps=1
+time=0.001
+```
+
+This uses the upstream `StaticRigidBody` animation path rather than inventing a
+browser-only transform. Bender2019 already transforms each particle query using
+the rigid body's current position and rotation, so the cached local-space
+volume map remains valid while the body moves.
+
+This does **not** yet prove two-way rigid-fluid dynamics. A `StaticRigidBody`
+reports `isDynamic() == false`; the next true-dynamic milestone is the
+PositionBasedDynamics-backed `PBDRigidBody` path.
+
+## Immediate next experiment
+
+Compile the exact PositionBasedDynamics revision pinned by SPlisHSPlasH 2.18.1
+under the same Emscripten toolchain.
+
+The upstream SPlisHSPlasH CMake configuration pins:
+
+```text
+PositionBasedDynamics
+10a70bc146a97873dc3c8fef372f5217e010542e
+```
+
+If the library-only PBD external project builds under Emscripten, the next
+integration target is a minimal `PBDRigidBody` bridge, followed by upstream
+`MotorScene.json` / `MotorScene2.json`.
+
+The only upstream animated-body Scene JSON in the current 2.18.1 examples is
+`AnimatedBody_2D.json`. It is useful later for browser-side scripted
+kinematics, but it combines an Akinci2012 general mesh (`Dragon_50k.obj`) with
+a Python animation script, so it is not the smallest next compatibility step.
+
+## Resume instruction
+
+Read this file, inspect current main and Actions, then continue from the PBD
+Emscripten compile probe. Keep animated/kinematic boundaries distinct from true
+dynamic/PBD coupling in tests and documentation.

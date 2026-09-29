@@ -1,0 +1,60 @@
+name: SPlisHSPlasH PBD WASM compile probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/splishsplash-wasm/build-pbd-probe.sh'
+      - '.github/workflows/splishsplash-pbd-wasm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pbd-wasm-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Emscripten build dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends emscripten cmake ninja-build libeigen3-dev
+
+      - name: Restore PBD/SPlisHSPlasH WASM cache
+        id: pbd-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/splishsplash-wasm-probe
+          key: splishsplash-pbd-wasm-v1-${{ runner.os }}-emscripten-3.1.6-${{ hashFiles('tests/splishsplash-wasm/wasm-smoke/**', 'tests/splishsplash-wasm/prepare_emscripten.py', 'tests/splishsplash-wasm/build.sh', 'tests/splishsplash-wasm/build-pbd-probe.sh') }}
+          restore-keys: |
+            splishsplash-pbd-wasm-v1-${{ runner.os }}-emscripten-3.1.6-
+            splishsplash-wasm-v2-${{ runner.os }}-emscripten-3.1.6-
+            splishsplash-wasm-v1-${{ runner.os }}-emscripten-3.1.6-
+
+      - name: Compile pinned PositionBasedDynamics for WASM
+        shell: bash
+        env:
+          SPLISHSPLASH_WASM_WORK_ROOT: ${{ github.workspace }}/.cache/splishsplash-wasm-probe
+        run: bash tests/splishsplash-wasm/build-pbd-probe.sh
+
+      - name: Save PBD/SPlisHSPlasH WASM cache
+        if: always() && steps.pbd-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/splishsplash-wasm-probe
+          key: ${{ steps.pbd-cache.outputs.cache-primary-key }}
+
+      - name: Upload PBD compile probe result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: splishsplash-pbd-wasm-probe
+          path: tests/splishsplash-wasm/pbd-out/
+          if-no-files-found: warn
