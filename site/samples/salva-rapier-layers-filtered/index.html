@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Layers filtered — SPH Web Samples</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0d10; color: #dce7f2; }
+    main { width: min(96vw, 980px); }
+    h1 { margin: 0 0 .35rem; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    p { margin: .3rem 0 .8rem; color: #91a4b7; }
+    a { color: #9bd4ff; }
+    .controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .8rem 0; }
+    button { border: 1px solid #3b4b5a; background: #151a20; color: #dce7f2; padding: .5rem .75rem; border-radius: .4rem; cursor: pointer; }
+    canvas { width: 100%; aspect-ratio: 4 / 3; display: block; background: #05070a; border: 1px solid #26313b; border-radius: 10px; }
+    #status { margin-top: .55rem; min-height: 1.2em; font-size: .85rem; color: #9fb5c8; font-variant-numeric: tabular-nums; }
+    .note { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #26313b; font-size: .88rem; }
+  </style>
+</head>
+<body>
+  <main data-coupling-variant="layers-filtered">
+    <p><a href="../../">← SPH Web Samples</a></p>
+    <h1>Rapier × Salva: Layers filtered</h1>
+    <p>The upstream Layers idea: fluids and rigid bodies use separate interaction groups.</p>
+    <div class="controls">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="reset">Reset</button>
+    </div>
+    <canvas id="view" width="800" height="600" aria-label="Layers filtered two-way fluid rigid-body coupling"></canvas>
+    <div id="status">Loading WASM…</div>
+    <p class="note">Ball = GROUP_1, box = GROUP_2, capsule = GROUP_3. The scene has fluid in GROUP_1 and GROUP_2 only, so GROUP_3 provides a useful non-interacting control.</p>
+  </main>
+  <script type="module" src="../../rapier-coupling.js?v=1.20"></script>
+</body>
+</html>
