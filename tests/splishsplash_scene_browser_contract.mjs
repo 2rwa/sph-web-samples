@@ -28,7 +28,7 @@ console.log("SPlisHSPlasH scene browser contract ok");
 
 const runtime = readFileSync("site/splishsplash-scene-runtime.js", "utf8");
 assert.match(runtime, /sph_scene_add_unit_box_bender_file/);
-assert.match(runtime, /Bender2019 UnitBox volume map loaded from precomputed Discregrid \.cdm/);
+assert.match(runtime, /Bender2019 rigid-body volume map loaded from precomputed Discregrid \.cdm/);
 
 assert.match(runtime, /sph_scene_set_iisph/);
 assert.match(runtime, /sph_scene_set_peer2015_viscosity/);
