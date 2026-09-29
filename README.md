@@ -28,7 +28,7 @@ Small browser experiments for SPH implementations.
 ## SPlisHSPlasH WebAssembly
 
 - [SPlisHSPlasH upstream Scene JSON browser](./site/tests/splishsplash-scene-browser/)
-  - One browser page / one WASM core rebuilds and switches among ten unedited upstream fixtures.
+  - One browser page / one WASM core rebuilds and switches among thirteen unedited upstream fixtures.
   - Solvers validated through the generic ABI: WCSPH, DFSPH, IISPH, ICSPH, and Projective Fluids.
   - The buckling fixtures additionally exercise Standard, Bender2017, Peer2015, Peer2016, Takahashi2015, and Weiler2018 viscosity configuration from Scene JSON.
   - CI rebuilds all ten scenes sequentially in one Emscripten module without scene-specific C++ initialization.
@@ -215,3 +215,20 @@ python3 -m http.server -d site 8000
 ```
 
 Then open <http://localhost:8000/>.
+
+
+### Surface tension coverage
+
+The browser build now enables `USE_THIRD_PARTY_METHODS=ON` and validates the
+Zorilla/Ritter 2020 surface-tension implementation from upstream Scene JSON.
+
+Current ZR2020 fixtures cover:
+
+- `SurfaceTension_NoGravCube_ZR2020.json`: IISPH, 12,167 particles, no rigid boundary.
+- `SurfaceTension_DoubleDroplet_ZR2020.json`: IISPH, 9,826 particles, temporal smoothing enabled.
+- `SurfaceTension_BreakDamZR2020.json`: DFSPH, 30,682 particles, sampled Akinci2012 UnitBox boundary.
+
+Surface-tension options are forwarded by GenericParameters name instead of
+adding one fixed C ABI function per upstream option. Parameters that still
+exist in SPlisHSPlasH 2.18.1 are applied; stale source-only JSON keys remain
+preserved in the fixture and are reported by the browser adapter.

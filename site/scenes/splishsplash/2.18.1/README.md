@@ -25,4 +25,10 @@ Fixtures:
 
 - `BucklingModel_Weiler2018.json`
 
+- `SurfaceTension_NoGravCube_ZR2020.json`
+
+- `SurfaceTension_DoubleDroplet_ZR2020.json`
+
+- `SurfaceTension_BreakDamZR2020.json`
+
 The browser adapter must preserve the original JSON meaning. If a browser-side bridge substitutes a desktop implementation detail, that substitution must be reported explicitly by the compatibility layer rather than silently rewriting the fixture.

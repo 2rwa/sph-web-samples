@@ -154,7 +154,7 @@ Each method gets a small Node/WASM regression before being exposed in the browse
 
 ## Phase 5 — browser Demo shell
 
-Current first pass: a shared scene browser switches the validated upstream compressible, dam-break, and buckling fixtures in one Emscripten module. CI rebuilds every listed scene sequentially through the generic ABI.
+Current first pass: a shared scene browser switches validated upstream compressible, dam-break, buckling, and surface-tension fixtures in one Emscripten module. CI rebuilds every listed scene sequentially through the generic ABI.
 
 
 
@@ -187,3 +187,15 @@ Defer these until static JSON scenes work:
 ## Success criterion for the first browser-scene phase
 
 A browser page should be able to load an unedited upstream scene JSON, show the normalized interpretation, state any bridge substitutions explicitly, create the simulation through the generic ABI, and run it without a scene-specific C++ initializer.
+
+
+## Non-pressure-force parameter bridge
+
+Surface tension is the first non-pressure-force family connected through a
+GenericParameters-by-name ABI. The initial target is upstream
+Zorilla/Ritter 2020 (`surfaceTensionMethod=5`).
+
+This is intentionally reusable for later vorticity, drag, elasticity and
+other non-pressure-force families: the JavaScript adapter preserves the
+original nested Scene JSON block, classifies known parameter types, and queues
+them before `sph_scene_commit()`.
