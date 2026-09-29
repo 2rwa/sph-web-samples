@@ -28,7 +28,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends             emscripten             cmake             ninja-build             libeigen3-dev
 
       - name: Restore SPlisHSPlasH WASM build cache
-        uses: actions/cache@v4
+        id: splish-cache
+        uses: actions/cache/restore@v4
         with:
           path: .cache/splishsplash-wasm-probe
           key: splishsplash-wasm-v1-${{ runner.os }}-emscripten-3.1.6-${{ hashFiles('tests/splishsplash-wasm/prepare_emscripten.py') }}
@@ -40,6 +41,13 @@ jobs:
         env:
           SPLISHSPLASH_WASM_WORK_ROOT: ${{ github.workspace }}/.cache/splishsplash-wasm-probe
         run: bash tests/splishsplash-wasm/build.sh
+
+      - name: Save SPlisHSPlasH WASM build cache
+        if: always() && steps.splish-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/splishsplash-wasm-probe
+          key: ${{ steps.splish-cache.outputs.cache-primary-key }}
 
       - name: Upload WASM smoke artifacts
         if: always()
