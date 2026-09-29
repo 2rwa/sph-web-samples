@@ -116,3 +116,24 @@ target_link_options(splishsplash_pbd_browser PRIVATE
     "-sEXPORTED_RUNTIME_METHODS=HEAPF32,FS,ccall"
 )
 set_target_properties(splishsplash_pbd_browser PROPERTIES SUFFIX ".js")
+
+add_executable(splishsplash_pbd_gravity_sweep EXCLUDE_FROM_ALL
+    sim_api.cpp
+    pbd_gravity_impact_sweep.cpp
+)
+add_dependencies(splishsplash_pbd_gravity_sweep Ext_PBD)
+target_compile_definitions(splishsplash_pbd_gravity_sweep PRIVATE SPLISHSPLASH_ENABLE_PBD=1)
+target_link_libraries(splishsplash_pbd_gravity_sweep PRIVATE
+    SPlisHSPlasH
+    ${PBD_LIBRARIES}
+    PBD_includes
+)
+target_link_options(splishsplash_pbd_gravity_sweep PRIVATE
+    "-sENVIRONMENT=node"
+    "-sEXIT_RUNTIME=1"
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sWASM_ASYNC_COMPILATION=0"
+    "-sASSERTIONS=1"
+    "-sNODERAWFS=1"
+)
+set_target_properties(splishsplash_pbd_gravity_sweep PROPERTIES SUFFIX ".js")

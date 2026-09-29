@@ -96,3 +96,16 @@ mkdir -p "$PBD_SITE_DIR"
 cp "$PBD_BROWSER_JS" "$PBD_SITE_DIR/splishsplash_pbd_browser.js"
 cp "${PBD_BROWSER_JS%.js}.wasm" "$PBD_SITE_DIR/splishsplash_pbd_browser.wasm"
 echo "pbd_browser_wasm_bytes=$(wc -c < "${PBD_BROWSER_JS%.js}.wasm")" | tee -a "$OUT_DIR/build-info.txt"
+
+echo "== sweep gravity-driven fluid impact into supported PBD plate =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_gravity_sweep --parallel 2
+PBD_GRAVITY_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_gravity_sweep.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_GRAVITY_JS" || ! -s "$PBD_GRAVITY_JS" || ! -s "${PBD_GRAVITY_JS%.js}.wasm" ]]; then
+  echo "PBD gravity sweep output not found" >&2
+  exit 25
+fi
+(
+  cd "$WORK_ROOT/maps"
+  /usr/bin/node "$PBD_GRAVITY_JS"
+) | tee "$OUT_DIR/gravity-sweep.txt"
+grep -q 'SPLISHSPLASH_PBD_GRAVITY_SWEEP_OK' "$OUT_DIR/gravity-sweep.txt"
