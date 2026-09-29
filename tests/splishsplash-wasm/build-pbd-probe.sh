@@ -27,7 +27,7 @@ if [[ -z "$PBD_LIB" || -z "$SIM_LIB" || -z "$UTIL_LIB" ]]; then
 fi
 
 {
-  echo "marker=SPLISHSPLASH_PBD_WASM_BUILD_OK"
+  echo "marker=SPLISHSPLASPLASH_PBD_WASM_BUILD_OK"
   echo "pbd_commit=10a70bc146a97873dc3c8fef372f5217e010542e"
   echo "emcc=$(emcc --version | head -1)"
   echo "position_based_dynamics_lib=$PBD_LIB"
@@ -39,3 +39,19 @@ fi
 } | tee "$OUT_DIR/build-info.txt"
 
 echo "SPLISHSPLASH_PBD_WASM_BUILD_OK"
+
+echo "== link minimal SPlisHSPlasH PBDRigidBody bridge probe =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_smoke --parallel 2
+
+PBD_SMOKE_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_smoke.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_SMOKE_JS" || ! -s "$PBD_SMOKE_JS" || ! -s "${PBD_SMOKE_JS%.js}.wasm" ]]; then
+  echo "PBD rigid-body smoke output not found" >&2
+  find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_smoke*' -print 2>/dev/null || true
+  exit 21
+fi
+
+echo "pbd_smoke_js=$PBD_SMOKE_JS" | tee -a "$OUT_DIR/build-info.txt"
+echo "pbd_smoke_wasm_bytes=$(wc -c < "${PBD_SMOKE_JS%.js}.wasm")" | tee -a "$OUT_DIR/build-info.txt"
+
+/usr/bin/node "$PBD_SMOKE_JS" | tee "$OUT_DIR/runtime.txt"
+grep -q 'SPLISHSPLASH_PBD_RIGIDBODY_WASM_OK' "$OUT_DIR/runtime.txt"
