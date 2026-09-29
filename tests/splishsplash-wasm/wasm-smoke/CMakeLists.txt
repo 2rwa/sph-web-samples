@@ -9,6 +9,7 @@ target_link_options(splishsplash_wasm_smoke PRIVATE
     "-sENVIRONMENT=node"
     "-sEXIT_RUNTIME=1"
     "-sALLOW_MEMORY_GROWTH=1"
+    "-sWASM_ASYNC_COMPILATION=0"
     "-sASSERTIONS=1"
 )
 

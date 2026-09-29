@@ -53,7 +53,19 @@ if [[ ! -s "$WASM_FILE" ]]; then
 fi
 
 echo "== execute wasm under Node =="
-node "$JS_FILE" | tee "$OUT_DIR/runtime.log"
+echo "PATH node: $(command -v node) ($(node --version))"
+if [[ -x /usr/bin/node ]]; then
+  echo "/usr/bin/node: $(/usr/bin/node --version)"
+fi
+
+set +e
+node "$JS_FILE" > >(tee "$OUT_DIR/runtime.log") 2> >(tee "$OUT_DIR/runtime.err.log" >&2)
+NODE_STATUS=$?
+set -e
+echo "node_exit_status=$NODE_STATUS" | tee "$OUT_DIR/runtime-status.txt"
+if [[ "$NODE_STATUS" -ne 0 ]]; then
+  exit "$NODE_STATUS"
+fi
 grep -q 'SPLISHSPLASH_WASM_SMOKE_OK' "$OUT_DIR/runtime.log"
 
 cp "$JS_FILE" "$OUT_DIR/"
