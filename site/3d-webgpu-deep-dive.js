@@ -540,7 +540,7 @@ async function runCi(){
   encodeFrame(tex.createView(),192,144);setStage("submitted-work-wait");await device.queue.onSubmittedWorkDone();const err=await device.popErrorScope();if(err)throw new Error(err.message);tex.destroy();setStage(config.status);
 }
 async function main(){
-  updateLabels();setStage("wasm-init");await init(new URL("./pkg/sph_web_samples_bg.wasm?v=2.10",import.meta.url));resetSimulation();
+  updateLabels();setStage("wasm-init");await init(new URL("./pkg/sph_web_samples_bg.wasm?v=2.10", import.meta.url));resetSimulation();
   setStage("request-adapter");const adapter=await navigator.gpu.requestAdapter();if(!adapter)throw new Error("requestAdapter() returned null");
   setStage("request-device");device=await adapter.requestDevice();device.lost.then(info=>setStage(`device-lost: ${info.reason} ${info.message}`));outputFormat=navigator.gpu.getPreferredCanvasFormat();
   if(!CI_MODE){canvasContext=canvas.getContext("webgpu");if(!canvasContext)throw new Error("webgpu canvas unavailable");canvasContext.configure({device,format:outputFormat,alphaMode:"opaque"});}
