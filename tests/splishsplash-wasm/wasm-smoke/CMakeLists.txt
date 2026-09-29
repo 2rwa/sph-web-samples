@@ -21,6 +21,7 @@ target_link_options(splishsplash_sim_smoke PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
     "-sWASM_ASYNC_COMPILATION=0"
     "-sASSERTIONS=1"
+    "-sNODERAWFS=1"
 )
 set_target_properties(splishsplash_sim_smoke PROPERTIES SUFFIX ".js")
 
