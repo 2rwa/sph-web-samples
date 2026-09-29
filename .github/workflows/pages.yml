@@ -44,6 +44,9 @@ jobs:
       - name: Compile Rust to browser WASM
         run: wasm-pack build --release --target web --out-dir site/pkg
 
+      - name: Test WASM runtime reset
+        run: node tests/wasm_runtime.mjs
+
       - name: Test generated page contract
         run: node tests/page_contract.mjs
 
