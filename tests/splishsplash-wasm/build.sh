@@ -33,6 +33,9 @@ CMAKE_EOF
 echo "== configure =="
 emcmake cmake   -S "$SRC_DIR"   -B "$BUILD_DIR"   -G Ninja   -DCMAKE_BUILD_TYPE=Release   -DCMAKE_POLICY_VERSION_MINIMUM=3.10   -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3   -DSPH_LIBS_ONLY=ON   -DBUILD_SHARED_LIBS=OFF   -DUSE_AVX=OFF   -DUSE_OpenMP=OFF   -DUSE_DOUBLE_PRECISION=OFF   -DUSE_PYTHON_BINDINGS=OFF   -DUSE_THIRD_PARTY_METHODS=OFF
 
+echo "== build wasm ExternalProject dependencies first =="
+cmake --build "$BUILD_DIR" --target Ext_NeighborhoodSearch Ext_GenericParameters Ext_Discregrid --parallel 2
+
 echo "== build real SPlisHSPlasH-linked wasm smoke target =="
 cmake --build "$BUILD_DIR" --target splishsplash_wasm_smoke --parallel 2
 
