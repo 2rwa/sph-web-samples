@@ -27,7 +27,7 @@ if [[ -z "$PBD_LIB" || -z "$SIM_LIB" || -z "$UTIL_LIB" ]]; then
 fi
 
 {
-  echo "marker=SPLISHSPLASPLASH_PBD_WASM_BUILD_OK"
+  echo "marker=SPLISHSPLASH_PBD_WASM_BUILD_OK"
   echo "pbd_commit=10a70bc146a97873dc3c8fef372f5217e010542e"
   echo "emcc=$(emcc --version | head -1)"
   echo "position_based_dynamics_lib=$PBD_LIB"
@@ -55,3 +55,18 @@ echo "pbd_smoke_wasm_bytes=$(wc -c < "${PBD_SMOKE_JS%.js}.wasm")" | tee -a "$OUT
 
 /usr/bin/node "$PBD_SMOKE_JS" | tee "$OUT_DIR/runtime.txt"
 grep -q 'SPLISHSPLASH_PBD_RIGIDBODY_WASM_OK' "$OUT_DIR/runtime.txt"
+
+echo "== run real SPH -> Bender2019 -> PBD two-way coupling probe =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_coupling_smoke --parallel 2
+PBD_COUPLING_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_coupling_smoke.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_COUPLING_JS" || ! -s "$PBD_COUPLING_JS" || ! -s "${PBD_COUPLING_JS%.js}.wasm" ]]; then
+  echo "PBD coupling smoke output not found" >&2
+  exit 22
+fi
+
+echo "pbd_coupling_wasm_bytes=$(wc -c < "${PBD_COUPLING_JS%.js}.wasm")" | tee -a "$OUT_DIR/build-info.txt"
+(
+  cd "$WORK_ROOT/maps"
+  /usr/bin/node "$PBD_COUPLING_JS"
+) | tee "$OUT_DIR/coupling-runtime.txt"
+grep -q 'SPLISHSPLASH_PBD_COUPLING_WASM_OK' "$OUT_DIR/coupling-runtime.txt"

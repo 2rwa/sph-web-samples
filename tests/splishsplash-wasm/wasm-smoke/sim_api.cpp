@@ -27,6 +27,11 @@
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
 
+#ifdef SPLISHSPLASH_ENABLE_PBD
+#include "Simulator/PositionBasedDynamicsWrapper/PBDRigidBody.h"
+#include "PositionBasedDynamics/TimeIntegration.h"
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -46,6 +51,11 @@ Simulation* g_sim = nullptr;
 FluidModel* g_model = nullptr;
 BoundaryModel_Akinci2012* g_boundary = nullptr;
 BoundaryModel_Bender2019* g_boundary_bender = nullptr;
+#ifdef SPLISHSPLASH_ENABLE_PBD
+PBD::RigidBody* g_pbd_body = nullptr;
+Real g_pbd_max_boundary_force = 0.0;
+Real g_pbd_last_boundary_force = 0.0;
+#endif
 double g_last_bender_map_build_ms = 0.0;
 std::vector<float> g_positions;
 std::vector<float> g_boundary_positions;
@@ -305,6 +315,13 @@ void destroy_simulation()
 
     if (Simulation::hasCurrent())
         delete Simulation::getCurrent();
+
+#ifdef SPLISHSPLASH_ENABLE_PBD
+    delete g_pbd_body;
+    g_pbd_body = nullptr;
+    g_pbd_max_boundary_force = 0.0;
+    g_pbd_last_boundary_force = 0.0;
+#endif
 
     reset_builder();
 }
@@ -1651,6 +1668,122 @@ EMSCRIPTEN_KEEPALIVE int sph_reset()
     refresh_boundary_positions();
     return static_cast<int>(g_model ? g_model->numActiveParticles() : 0u);
 }
+
+#ifdef SPLISHSPLASH_ENABLE_PBD
+EMSCRIPTEN_KEEPALIVE int sph_bender_promote_dynamic_pbd(const float mass)
+{
+    if (!g_boundary_bender || !g_boundary_bender->getRigidBodyObject() ||
+        !(mass > 0.0f) || g_pbd_body != nullptr)
+        return 0;
+
+    RigidBodyObject* old = g_boundary_bender->getRigidBodyObject();
+    const Vector3r position = old->getPosition();
+    const Vector3r velocity = old->getVelocity();
+    const Quaternionr rotation = old->getRotation();
+    const Vector3r angularVelocity = old->getAngularVelocity();
+
+    PBD::RigidBody* body = new PBD::RigidBody();
+    body->setMass(static_cast<Real>(mass));
+    body->setPosition(position);
+    body->setPosition0(position);
+    body->setOldPosition(position);
+    body->setLastPosition(position);
+    body->setVelocity(velocity);
+    body->setVelocity0(velocity);
+    body->setAcceleration(Vector3r::Zero());
+    body->setInertiaTensor(Vector3r::Ones());
+    body->setRotation(rotation);
+    body->setRotation0(rotation);
+    body->setOldRotation(rotation);
+    body->setLastRotation(rotation);
+    body->setRotationMAT(Quaternionr::Identity());
+    body->setRotationInitial(Quaternionr::Identity());
+    body->setPositionInitial_MAT(Vector3r::Zero());
+    body->setAngularVelocity(angularVelocity);
+    body->setAngularVelocity0(angularVelocity);
+    body->setTorque(Vector3r::Zero());
+    body->rotationUpdated();
+
+    PBDRigidBody* bridge = new PBDRigidBody(body);
+    g_boundary_bender->initModel(bridge);
+    delete old;
+
+    g_pbd_body = body;
+    g_pbd_max_boundary_force = 0.0;
+    g_pbd_last_boundary_force = 0.0;
+    return bridge->isDynamic() ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_step_dynamic_pbd(const int steps)
+{
+    if (!g_sim || !g_model || !g_sim->getTimeStep() ||
+        !g_boundary_bender || g_pbd_body == nullptr)
+        return -1;
+
+    const int count = std::max(0, std::min(2000, steps));
+    for (int i = 0; i < count; ++i)
+    {
+        g_sim->getTimeStep()->step();
+
+        Vector3r force = Vector3r::Zero();
+        Vector3r torque = Vector3r::Zero();
+        g_boundary_bender->getForceAndTorque(force, torque);
+        g_pbd_last_boundary_force = force.norm();
+        g_pbd_max_boundary_force = std::max(g_pbd_max_boundary_force, g_pbd_last_boundary_force);
+
+        RigidBodyObject* bridge = g_boundary_bender->getRigidBodyObject();
+        bridge->addForce(force);
+        bridge->addTorque(torque);
+        g_boundary_bender->clearForceAndTorque();
+
+        const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+        g_pbd_body->getLastPosition() = g_pbd_body->getOldPosition();
+        g_pbd_body->getOldPosition() = g_pbd_body->getPosition();
+        PBD::TimeIntegration::semiImplicitEuler(
+            dt,
+            g_pbd_body->getMass(),
+            g_pbd_body->getPosition(),
+            g_pbd_body->getVelocity(),
+            Vector3r::Zero());
+
+        g_pbd_body->getLastRotation() = g_pbd_body->getOldRotation();
+        g_pbd_body->getOldRotation() = g_pbd_body->getRotation();
+        PBD::TimeIntegration::semiImplicitEulerRotation(
+            dt,
+            g_pbd_body->getMass(),
+            g_pbd_body->getInertiaTensorW(),
+            g_pbd_body->getInertiaTensorInverseW(),
+            g_pbd_body->getRotation(),
+            g_pbd_body->getAngularVelocity(),
+            Vector3r::Zero());
+        g_pbd_body->rotationUpdated();
+        ++g_step_count;
+    }
+
+    refresh_positions();
+    return static_cast<int>(g_step_count);
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_position_y()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getPosition()[1]) : 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_body_velocity_y()
+{
+    return g_pbd_body ? static_cast<float>(g_pbd_body->getVelocity()[1]) : 0.0f;
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_max_boundary_force()
+{
+    return static_cast<float>(g_pbd_max_boundary_force);
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_last_boundary_force()
+{
+    return static_cast<float>(g_pbd_last_boundary_force);
+}
+#endif
 
 EMSCRIPTEN_KEEPALIVE int sph_step(const int steps)
 {
