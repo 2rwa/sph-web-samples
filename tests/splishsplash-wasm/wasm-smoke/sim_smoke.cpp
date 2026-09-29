@@ -4,6 +4,22 @@
 extern "C" {
 int sph_init(int side);
 int sph_init_dambreak(int resolution);
+int sph_scene_begin(float particleRadius, int simulationMethod, int boundaryMethod);
+int sph_scene_set_gravity(float x, float y, float z);
+int sph_scene_set_timing(int cflMethod, float cflFactor, float cflMax, float initialDt);
+int sph_scene_set_wcsph(float stiffness, float exponent);
+int sph_scene_set_material(float density0, unsigned int viscosityMethod);
+int sph_scene_add_fluid_block(
+    float sx, float sy, float sz,
+    float ex, float ey, float ez,
+    float tx, float ty, float tz,
+    float scx, float scy, float scz,
+    float vx, float vy, float vz,
+    int denseMode);
+int sph_scene_add_unit_box(
+    float tx, float ty, float tz,
+    float sx, float sy, float sz);
+int sph_scene_commit();
 int sph_step(int steps);
 int sph_particle_count();
 int sph_boundary_count();
@@ -153,6 +169,102 @@ int main()
                   << " minY=" << minY
                   << " initialMaxX=" << initialMaxX
                   << " maxX=" << maxX
+                  << " time=" << time << "\n";
+
+        sph_destroy();
+    }
+
+
+    {
+        if (!sph_scene_begin(0.025f, 0, 2))
+            return 40;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        // The upstream JSON requests 0.005, but the first browser bridge replaces
+        // Bender2019 with sampled Akinci2012 walls and explicitly uses a 0.001 cap.
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_wcsph(25000.0f, 1.0f);
+        sph_scene_set_material(1000.0f, 1u);
+
+        const int block1 = sph_scene_add_fluid_block(
+            -0.4f, -0.4f, -0.4f,
+             0.4f,  0.4f,  0.4f,
+            -0.6f,  0.6f,  0.0f,
+             1.0f,  1.0f,  1.0f,
+             5.0f,  0.0f,  0.0f,
+             0);
+        const int block2 = sph_scene_add_fluid_block(
+            -0.4f, -0.4f, -0.4f,
+             0.4f,  0.4f,  0.4f,
+             0.6f,  0.6f,  0.0f,
+             1.0f,  1.0f,  1.0f,
+            -5.0f,  0.0f,  0.0f,
+             0);
+        const int boxes = sph_scene_add_unit_box(
+            0.0f, 1.5f, 0.0f,
+            3.1f, 3.1f, 3.1f);
+
+        const int count = sph_scene_commit();
+        const int boundaryCount = sph_boundary_count();
+        const float x0 = sph_max_x();
+        const float y0 = sph_min_y();
+
+        if (
+            block1 != 1 ||
+            block2 != 2 ||
+            boxes != 1 ||
+            count != 9826 ||
+            boundaryCount < 20000 ||
+            !sph_all_finite())
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_SCENE_WASM_FAIL init"
+                      << " blocks=" << block1 << "," << block2
+                      << " boxes=" << boxes
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " minY=" << y0
+                      << " maxX=" << x0 << "\n";
+            sph_destroy();
+            return 41;
+        }
+
+        const int steps = sph_step(5);
+        const float x1 = sph_max_x();
+        const float y1 = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            steps == 5 &&
+            sph_all_finite() &&
+            std::isfinite(x1) &&
+            std::isfinite(y1) &&
+            x1 > x0 &&
+            x1 < 1.55f &&
+            y1 > -0.05f &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_SCENE_WASM_FAIL runtime"
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " steps=" << steps
+                      << " x0=" << x0
+                      << " x1=" << x1
+                      << " y0=" << y0
+                      << " y1=" << y1
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 42;
+        }
+
+        std::cout << "SPLISHSPLASH_GENERIC_SCENE_WASM_OK"
+                  << " particles=" << count
+                  << " boundary=" << boundaryCount
+                  << " steps=" << steps
+                  << " x0=" << x0
+                  << " x1=" << x1
+                  << " minY=" << y1
                   << " time=" << time << "\n";
 
         sph_destroy();

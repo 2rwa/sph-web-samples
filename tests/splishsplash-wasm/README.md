@@ -29,6 +29,8 @@ SPLISHSPLASH_SIM_WASM_OK
 CI SPlisHSPlasH browser ok
 SPLISHSPLASH_DAMBREAK_WASM_OK
 CI SPlisHSPlasH Dam Break ok
+SPLISHSPLASH_GENERIC_SCENE_WASM_OK
+CI SPlisHSPlasH generic scene ok
 ```
 
 ## Current browser scene
@@ -67,3 +69,18 @@ http://localhost:8000/tests/splishsplash-wasm-dambreak/
 ```
 
 Generated build artifacts are written to `tests/splishsplash-wasm/out/`; browser JS/WASM is copied to `site/vendor/splishsplash/`. Both are build outputs and are not intended to be committed.
+
+
+## Generic Scene JSON bridge
+
+The next phase adds a generic builder ABI to `sim_api.cpp`. JavaScript can now forward particle radius, gravity, timing/CFL, WCSPH parameters, material density/viscosity method, fluid blocks, and static UnitBox transforms without adding a scene-specific C++ initializer.
+
+The first regression scene mirrors upstream `CompressibleSPH_WCSPH.json`:
+
+- 2 fluid blocks,
+- 9,826 fluid particles at radius 0.025,
+- initial X velocities +5 / -5,
+- WCSPH stiffness 25000, exponent 1,
+- upstream Bender2019 UnitBox explicitly substituted by a sampled Akinci2012 UnitBox bridge.
+
+The bridge substitution is a browser compatibility layer, not a modification of the source JSON.

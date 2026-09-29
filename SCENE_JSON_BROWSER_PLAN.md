@@ -76,6 +76,14 @@ It should distinguish:
 - desktop Simulator feature that needs a browser replacement,
 - genuinely unsupported/unknown.
 
+## Current progress
+
+- Phase 1 JavaScript parser / normalized IR: implemented for the first three fixtures.
+- Phase 2 generic C ABI: first WCSPH builder implemented.
+- First end-to-end target: `CompressibleSPH_WCSPH.json`.
+- The browser currently substitutes static unrotated Bender2019 UnitBox walls with sampled Akinci2012 UnitBox particles and reports that substitution explicitly.
+- The first bridge also caps the effective CFL max at 0.001 while preserving the source JSON value for diagnostics.
+
 ## Phase 2 — generic C ABI
 
 Replace scene-specific entry points with a small builder API.
@@ -97,6 +105,19 @@ sph_add_boundary_particles(...)
 
 sph_scene_commit()
 sph_step(...)
+
+Implemented first-pass ABI names:
+
+```text
+sph_scene_begin
+sph_scene_set_gravity
+sph_scene_set_timing
+sph_scene_set_wcsph
+sph_scene_set_material
+sph_scene_add_fluid_block
+sph_scene_add_unit_box
+sph_scene_commit
+```
 ```
 
 This wrapper may change. The important constraint is that the SPlisHSPlasH core remains upstream and unmodified.

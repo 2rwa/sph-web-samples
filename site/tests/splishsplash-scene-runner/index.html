@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SPlisHSPlasH JSON-driven browser scene</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; background:#101217; color:#eee; font:15px/1.45 system-ui,sans-serif; }
+    main { max-width:1100px; margin:0 auto; padding:18px; }
+    a { color:#9fd1ff; }
+    .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0; }
+    button { font:inherit; padding:6px 10px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin:12px 0; }
+    .card { background:#1b1f26; padding:8px 10px; border-radius:6px; }
+    .label { color:#aaa; font-size:12px; }
+    #view { width:100%; height:min(68vh,680px); display:block; background:#05080d; border:1px solid #333; touch-action:none; }
+    #status { font-weight:700; }
+    #bridge { color:#ffd28c; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="../../">← SPH Web Samples</a></p>
+  <h1>Upstream Scene JSON → generic ABI → SPlisHSPlasH WASM</h1>
+  <p>
+    Loads the unedited upstream <code>CompressibleSPH_WCSPH.json</code>.
+    The solver parameters and two ±5 velocity fluid blocks come from JSON.
+    The first browser bridge explicitly substitutes the desktop Bender2019 UnitBox boundary with sampled Akinci2012 particles.
+  </p>
+
+  <div class="bar">
+    <button id="pause">Pause</button>
+    <button id="reset">Reset</button>
+    <span id="status">Loading…</span>
+  </div>
+  <div id="bridge"></div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Fluid particles</div><div id="particles">-</div></div>
+    <div class="card"><div class="label">Boundary particles</div><div id="boundary-particles">-</div></div>
+    <div class="card"><div class="label">Steps</div><div id="steps">-</div></div>
+    <div class="card"><div class="label">Simulation time</div><div id="sim-time">-</div></div>
+    <div class="card"><div class="label">Physics ms/frame</div><div id="physics-ms">-</div></div>
+    <div class="card"><div class="label">Min Y</div><div id="min-y">-</div></div>
+    <div class="card"><div class="label">Max X</div><div id="max-x">-</div></div>
+  </div>
+
+  <canvas id="view"></canvas>
+</main>
+
+<script src="../../vendor/splishsplash/splishsplash_browser.js"></script>
+<script type="module" src="../../splishsplash-scene-runner.js"></script>
+</body>
+</html>

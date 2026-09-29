@@ -33,6 +33,58 @@ int g_side = 0;
 int g_scene = 0;
 unsigned int g_step_count = 0;
 
+struct PendingFluidBlock
+{
+    Vector3r start;
+    Vector3r end;
+    Vector3r translation;
+    Vector3r scale;
+    Vector3r velocity;
+    int denseMode;
+    unsigned int objectId;
+};
+
+struct PendingUnitBox
+{
+    Vector3r translation;
+    Vector3r scale;
+};
+
+std::vector<PendingFluidBlock> g_pending_blocks;
+std::vector<PendingUnitBox> g_pending_boxes;
+Real g_builder_particle_radius = static_cast<Real>(0.025);
+Vector3r g_builder_gravity(0.0, -9.81, 0.0);
+int g_builder_simulation_method = 0;
+int g_builder_requested_boundary_method = 2;
+int g_builder_cfl_method = 1;
+Real g_builder_cfl_factor = static_cast<Real>(1.0);
+Real g_builder_cfl_max = static_cast<Real>(0.001);
+Real g_builder_initial_dt = static_cast<Real>(0.001);
+Real g_builder_density0 = static_cast<Real>(1000.0);
+unsigned int g_builder_viscosity_method = 1u;
+Real g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
+Real g_builder_wcsph_exponent = static_cast<Real>(1.0);
+bool g_builder_active = false;
+
+void reset_builder()
+{
+    g_pending_blocks.clear();
+    g_pending_boxes.clear();
+    g_builder_particle_radius = static_cast<Real>(0.025);
+    g_builder_gravity = Vector3r(0.0, -9.81, 0.0);
+    g_builder_simulation_method = 0;
+    g_builder_requested_boundary_method = 2;
+    g_builder_cfl_method = 1;
+    g_builder_cfl_factor = static_cast<Real>(1.0);
+    g_builder_cfl_max = static_cast<Real>(0.001);
+    g_builder_initial_dt = static_cast<Real>(0.001);
+    g_builder_density0 = static_cast<Real>(1000.0);
+    g_builder_viscosity_method = 1u;
+    g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
+    g_builder_wcsph_exponent = static_cast<Real>(1.0);
+    g_builder_active = false;
+}
+
 void refresh_positions()
 {
     if (!g_model)
@@ -84,6 +136,8 @@ void destroy_simulation()
 
     if (Simulation::hasCurrent())
         delete Simulation::getCurrent();
+
+    reset_builder();
 }
 
 std::vector<Vector3r> make_open_box_boundary(const Real spacing)
@@ -133,6 +187,182 @@ std::vector<Vector3r> make_open_box_boundary(const Real spacing)
     }
 
     return result;
+}
+
+
+std::vector<Vector3r> make_unit_box_boundary(
+    const Vector3r& translation,
+    const Vector3r& scale,
+    const Real spacing)
+{
+    const Real sx = std::abs(scale[0]);
+    const Real sy = std::abs(scale[1]);
+    const Real sz = std::abs(scale[2]);
+    if (!(sx > 0.0) || !(sy > 0.0) || !(sz > 0.0) || !(spacing > 0.0))
+        return {};
+
+    const int nx = std::max(1, static_cast<int>(std::ceil(sx / spacing)));
+    const int ny = std::max(1, static_cast<int>(std::ceil(sy / spacing)));
+    const int nz = std::max(1, static_cast<int>(std::ceil(sz / spacing)));
+
+    std::set<std::tuple<int, int, int>> cells;
+    for (int ix = 0; ix <= nx; ++ix)
+    {
+        for (int iy = 0; iy <= ny; ++iy)
+        {
+            cells.insert(std::make_tuple(ix, iy, 0));
+            cells.insert(std::make_tuple(ix, iy, nz));
+        }
+    }
+    for (int ix = 0; ix <= nx; ++ix)
+    {
+        for (int iz = 0; iz <= nz; ++iz)
+        {
+            cells.insert(std::make_tuple(ix, 0, iz));
+            cells.insert(std::make_tuple(ix, ny, iz));
+        }
+    }
+    for (int iy = 0; iy <= ny; ++iy)
+    {
+        for (int iz = 0; iz <= nz; ++iz)
+        {
+            cells.insert(std::make_tuple(0, iy, iz));
+            cells.insert(std::make_tuple(nx, iy, iz));
+        }
+    }
+
+    const Vector3r minCorner = translation - static_cast<Real>(0.5) * Vector3r(sx, sy, sz);
+    const Real dx = sx / static_cast<Real>(nx);
+    const Real dy = sy / static_cast<Real>(ny);
+    const Real dz = sz / static_cast<Real>(nz);
+
+    std::vector<Vector3r> result;
+    result.reserve(cells.size());
+    for (const auto& cell : cells)
+    {
+        result.emplace_back(
+            minCorner[0] + static_cast<Real>(std::get<0>(cell)) * dx,
+            minCorner[1] + static_cast<Real>(std::get<1>(cell)) * dy,
+            minCorner[2] + static_cast<Real>(std::get<2>(cell)) * dz);
+    }
+    return result;
+}
+
+void append_fluid_block(
+    const PendingFluidBlock& block,
+    const Real spacing,
+    std::vector<Vector3r>& positions,
+    std::vector<Vector3r>& velocities,
+    std::vector<unsigned int>& objectIds)
+{
+    Vector3r a(
+        block.start[0] * block.scale[0] + block.translation[0],
+        block.start[1] * block.scale[1] + block.translation[1],
+        block.start[2] * block.scale[2] + block.translation[2]);
+    Vector3r b(
+        block.end[0] * block.scale[0] + block.translation[0],
+        block.end[1] * block.scale[1] + block.translation[1],
+        block.end[2] * block.scale[2] + block.translation[2]);
+
+    const Vector3r lo = a.cwiseMin(b);
+    const Vector3r hi = a.cwiseMax(b);
+    const int nx = std::max(1, static_cast<int>(std::floor((hi[0] - lo[0]) / spacing + static_cast<Real>(1.0e-4))) + 1);
+    const int ny = std::max(1, static_cast<int>(std::floor((hi[1] - lo[1]) / spacing + static_cast<Real>(1.0e-4))) + 1);
+    const int nz = std::max(1, static_cast<int>(std::floor((hi[2] - lo[2]) / spacing + static_cast<Real>(1.0e-4))) + 1);
+
+    for (int iz = 0; iz < nz; ++iz)
+    {
+        for (int iy = 0; iy < ny; ++iy)
+        {
+            for (int ix = 0; ix < nx; ++ix)
+            {
+                positions.emplace_back(
+                    lo[0] + static_cast<Real>(ix) * spacing,
+                    lo[1] + static_cast<Real>(iy) * spacing,
+                    lo[2] + static_cast<Real>(iz) * spacing);
+                velocities.push_back(block.velocity);
+                objectIds.push_back(block.objectId);
+            }
+        }
+    }
+}
+
+int commit_generic_scene()
+{
+    if (!g_builder_active || g_pending_blocks.empty())
+        return -10;
+    if (g_builder_simulation_method != static_cast<int>(SimulationMethods::WCSPH))
+        return -11;
+    if (!(g_builder_particle_radius > 0.0))
+        return -12;
+
+    const Real spacing = static_cast<Real>(2.0) * g_builder_particle_radius;
+    std::vector<Vector3r> positions;
+    std::vector<Vector3r> velocities;
+    std::vector<unsigned int> objectIds;
+
+    for (const PendingFluidBlock& block : g_pending_blocks)
+        append_fluid_block(block, spacing, positions, velocities, objectIds);
+
+    if (positions.empty())
+        return -13;
+
+    g_sim = Simulation::getCurrent();
+    g_sim->init(g_builder_particle_radius, false);
+
+    // First generic browser bridge: upstream Bender2019/Koschier rigid walls are
+    // represented as Akinci2012 sampled boundary particles. The JS adapter reports
+    // this substitution explicitly; the source Scene JSON is not rewritten.
+    if (!g_pending_boxes.empty())
+        g_sim->setBoundaryHandlingMethod(BoundaryHandlingMethods::Akinci2012);
+
+    g_sim->setVecValue<Real>(Simulation::GRAVITATION, &g_builder_gravity[0]);
+    g_sim->setValue(Simulation::CFL_METHOD, g_builder_cfl_method);
+    g_sim->setValue(Simulation::CFL_FACTOR, g_builder_cfl_factor);
+    g_sim->setValue(Simulation::CFL_MAX_TIMESTEPSIZE, g_builder_cfl_max);
+
+    TimeManager::getCurrent()->setTime(static_cast<Real>(0.0));
+    TimeManager::getCurrent()->setTimeStepSize(g_builder_initial_dt);
+
+    g_sim->addFluidModel(
+        "BrowserSceneFluid",
+        static_cast<unsigned int>(positions.size()),
+        positions.data(),
+        velocities.data(),
+        objectIds.data(),
+        0u);
+
+    g_model = g_sim->getFluidModel(0);
+    g_model->setDensity0(g_builder_density0);
+    g_model->setViscosityMethod(g_builder_viscosity_method);
+
+    g_sim->setSimulationMethod(static_cast<int>(SimulationMethods::WCSPH));
+    TimeStepWCSPH* wcsph = static_cast<TimeStepWCSPH*>(g_sim->getTimeStep());
+    wcsph->setValue(TimeStepWCSPH::STIFFNESS, g_builder_wcsph_stiffness);
+    wcsph->setValue(TimeStepWCSPH::EXPONENT, g_builder_wcsph_exponent);
+    g_sim->setSimulationInitialized(1);
+
+    if (!g_pending_boxes.empty())
+    {
+        std::vector<Vector3r> boundaryParticles;
+        for (const PendingUnitBox& box : g_pending_boxes)
+        {
+            const std::vector<Vector3r> boxParticles =
+                make_unit_box_boundary(box.translation, box.scale, spacing);
+            boundaryParticles.insert(
+                boundaryParticles.end(),
+                boxParticles.begin(),
+                boxParticles.end());
+        }
+        add_akinci_boundary(boundaryParticles);
+    }
+
+    g_scene = 2;
+    g_side = 0;
+    g_step_count = 0;
+    g_builder_active = false;
+    refresh_positions();
+    return static_cast<int>(g_model->numActiveParticles());
 }
 
 void add_akinci_boundary(const std::vector<Vector3r>& boundaryParticles)
@@ -312,6 +542,113 @@ float max_particle_x()
 }
 
 extern "C" {
+
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_begin(
+    const float particleRadius,
+    const int simulationMethod,
+    const int boundaryMethod)
+{
+    destroy_simulation();
+    g_builder_active = true;
+    g_builder_particle_radius = static_cast<Real>(particleRadius);
+    g_builder_simulation_method = simulationMethod;
+    g_builder_requested_boundary_method = boundaryMethod;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_gravity(const float x, const float y, const float z)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_gravity = Vector3r(
+        static_cast<Real>(x),
+        static_cast<Real>(y),
+        static_cast<Real>(z));
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_timing(
+    const int cflMethod,
+    const float cflFactor,
+    const float cflMax,
+    const float initialDt)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_cfl_method = cflMethod;
+    g_builder_cfl_factor = static_cast<Real>(cflFactor);
+    g_builder_cfl_max = static_cast<Real>(cflMax);
+    g_builder_initial_dt = static_cast<Real>(initialDt);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_wcsph(const float stiffness, const float exponent)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_wcsph_stiffness = static_cast<Real>(stiffness);
+    g_builder_wcsph_exponent = static_cast<Real>(exponent);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_material(
+    const float density0,
+    const unsigned int viscosityMethod)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_density0 = static_cast<Real>(density0);
+    g_builder_viscosity_method = viscosityMethod;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_fluid_block(
+    const float sx, const float sy, const float sz,
+    const float ex, const float ey, const float ez,
+    const float tx, const float ty, const float tz,
+    const float scx, const float scy, const float scz,
+    const float vx, const float vy, const float vz,
+    const int denseMode)
+{
+    if (!g_builder_active)
+        return 0;
+
+    PendingFluidBlock block;
+    block.start = Vector3r(sx, sy, sz);
+    block.end = Vector3r(ex, ey, ez);
+    block.translation = Vector3r(tx, ty, tz);
+    block.scale = Vector3r(scx, scy, scz);
+    block.velocity = Vector3r(vx, vy, vz);
+    block.denseMode = denseMode;
+    block.objectId = static_cast<unsigned int>(g_pending_blocks.size());
+    g_pending_blocks.push_back(block);
+    return static_cast<int>(g_pending_blocks.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_add_unit_box(
+    const float tx, const float ty, const float tz,
+    const float sx, const float sy, const float sz)
+{
+    if (!g_builder_active)
+        return 0;
+
+    PendingUnitBox box;
+    box.translation = Vector3r(tx, ty, tz);
+    box.scale = Vector3r(sx, sy, sz);
+    g_pending_boxes.push_back(box);
+    return static_cast<int>(g_pending_boxes.size());
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_commit()
+{
+    return commit_generic_scene();
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_requested_boundary_method()
+{
+    return g_builder_requested_boundary_method;
+}
 
 EMSCRIPTEN_KEEPALIVE int sph_init(const int side)
 {

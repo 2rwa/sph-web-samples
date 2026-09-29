@@ -46,6 +46,12 @@ Small browser experiments for SPH implementations.
   - Normalizes solver, boundary method, materials, rigid bodies, and fluid blocks into a browser scene IR.
   - Reports browser bridge requirements explicitly instead of silently rewriting unsupported desktop features.
   - Initial fixtures: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, and `DoubleDamBreak.json`.
+- [SPlisHSPlasH JSON-driven generic scene runner](./site/tests/splishsplash-scene-runner/)
+  - Uses a scene-builder C ABI instead of a scene-specific C++ initializer.
+  - Reads upstream `CompressibleSPH_WCSPH.json` in JavaScript and forwards its WCSPH parameters, gravity, material and two fluid blocks into WASM.
+  - The two upstream blocks create 9,826 fluid particles with ±5 initial X velocity.
+  - First boundary bridge: static, unrotated upstream `UnitBox.obj` with Bender2019 is explicitly substituted by a sampled Akinci2012 UnitBox. The source JSON remains unmodified.
+  - Because that first sampled-boundary bridge is less stable than the upstream Bender2019 volume map, the effective CFL max is transparently capped at 0.001 for this bridge.
 
 See [SPLISHSPLASH_WASM_MILESTONE_20260929.md](./SPLISHSPLASH_WASM_MILESTONE_20260929.md) for the frozen WASM milestone and [SCENE_JSON_BROWSER_PLAN.md](./SCENE_JSON_BROWSER_PLAN.md) for the next architecture phase.
 
@@ -167,6 +173,7 @@ node tests/page_contract.mjs
 node tests/splishsplash_browser_contract.mjs
 node tests/splishsplash_dambreak_contract.mjs
 node tests/splishsplash_scene_json_contract.mjs
+node tests/splishsplash_generic_scene_contract.mjs
 python3 -m http.server -d site 8000
 ```
 
