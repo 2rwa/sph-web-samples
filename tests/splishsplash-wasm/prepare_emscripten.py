@@ -145,6 +145,19 @@ def forward_pbd_eigen() -> None:
     path.write_text(text.replace(needle, inserted, 1))
 
 
+def clear_pbd_external_patches() -> None:
+    path = root / "CMake" / "SetUpExternalProjects.cmake"
+    lines = path.read_text().splitlines()
+    filtered = [
+        line for line in lines
+        if not (
+            "disable_external_openmp.py" in line
+            and (" pbd " in line or " pbd-wasm-v2 " in line)
+        )
+    ]
+    path.write_text("\n".join(filtered) + "\n")
+
+
 def add_external_patch(relative: str, git_tag: str, kind: str) -> None:
     path = root / relative
     text = path.read_text()
@@ -169,6 +182,7 @@ forward_toolchain("CMake/NeighborhoodSearch.cmake")
 forward_toolchain("CMake/SetUpExternalProjects.cmake")
 forward_pbd_eigen()
 write_external_openmp_patcher()
+clear_pbd_external_patches()
 add_external_patch(
     "CMake/NeighborhoodSearch.cmake",
     "b40afcf47fe1963b363eba2371f04b42720fcb1d",
