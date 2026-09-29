@@ -238,7 +238,8 @@ int main()
             sph_all_finite() &&
             std::isfinite(x1) &&
             std::isfinite(y1) &&
-            x1 > x0 &&
+            x1 < x0 &&
+            x1 > 0.90f &&
             x1 < 1.55f &&
             y1 > -0.05f &&
             time > 0.0f;
