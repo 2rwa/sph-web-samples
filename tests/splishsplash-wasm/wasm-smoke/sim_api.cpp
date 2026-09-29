@@ -282,7 +282,7 @@ Discregrid::CubicLagrangeDiscreteGrid* make_bender_box_volume_map(const PendingU
         Eigen::Vector3d::Constant(-static_cast<double>(supportRadius)),
         Eigen::Vector3d::Constant( static_cast<double>(supportRadius)));
 
-    auto volumeFunc = [volumeMap, supportRadius](const Eigen::Vector3d& x)
+    auto volumeFunc = [volumeMap, supportRadius, intDomain](const Eigen::Vector3d& x)
     {
         const double distX = volumeMap->interpolate(0u, x);
         if (distX > 2.0 * static_cast<double>(supportRadius))
