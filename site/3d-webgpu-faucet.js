@@ -575,19 +575,53 @@ async function createPipelines(outputFormat) {
   ]);
 
   setStage("create-pipeline");
+  const computeBindGroupLayout = device.createBindGroupLayout({
+    label: "faucet-compute-bind-group-layout",
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "read-only-storage" },
+      },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "storage" },
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: {
+          access: "write-only",
+          format: "r32float",
+          viewDimension: "3d",
+        },
+      },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "uniform" },
+      },
+    ],
+  });
+  const computePipelineLayout = device.createPipelineLayout({
+    label: "faucet-compute-pipeline-layout",
+    bindGroupLayouts: [computeBindGroupLayout],
+  });
+
   clearPipeline = device.createComputePipeline({
     label: "faucet-clear-density",
-    layout: "auto",
+    layout: computePipelineLayout,
     compute: { module: densityModule, entryPoint: "clearDensityMain" },
   });
   splatPipeline = device.createComputePipeline({
     label: "faucet-splat-particles",
-    layout: "auto",
+    layout: computePipelineLayout,
     compute: { module: densityModule, entryPoint: "splatParticlesMain" },
   });
   normalizePipeline = device.createComputePipeline({
     label: "faucet-normalize-density",
-    layout: "auto",
+    layout: computePipelineLayout,
     compute: { module: densityModule, entryPoint: "normalizeDensityMain" },
   });
   renderPipeline = device.createRenderPipeline({
@@ -611,7 +645,7 @@ async function createPipelines(outputFormat) {
 
   densityBindGroup = device.createBindGroup({
     label: "faucet-density-bind-group",
-    layout: clearPipeline.getBindGroupLayout(0),
+    layout: computeBindGroupLayout,
     entries: densityEntries,
   });
 
