@@ -22,7 +22,7 @@ const statusEl = document.querySelector("#status");
 const bridgeEl = document.querySelector("#bridge");
 const methodEl = document.querySelector("#method");
 const particlesEl = document.querySelector("#particles");
-const boundaryParticlesEl = document.querySelector("#boundary-particles");
+const boundaryModelsEl = document.querySelector("#boundary-models");
 const stepsEl = document.querySelector("#steps");
 const simTimeEl = document.querySelector("#sim-time");
 const physicsMsEl = document.querySelector("#physics-ms");
@@ -30,6 +30,7 @@ const centerYEl = document.querySelector("#center-y");
 const minYEl = document.querySelector("#min-y");
 
 let Module;
+let currentIR = null;
 let running = true;
 let loading = false;
 let yaw = 0.55;
@@ -83,6 +84,38 @@ function readProjected(count, ptr, stride) {
   return out;
 }
 
+
+function drawRigidBodies() {
+  if (!currentIR) return;
+  const edges = [
+    [0,1],[1,3],[3,2],[2,0],
+    [4,5],[5,7],[7,6],[6,4],
+    [0,4],[1,5],[2,6],[3,7],
+  ];
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,165,80,.78)";
+  ctx.lineWidth = Math.max(1, canvas.width / 900);
+
+  for (const body of currentIR.rigidBodies) {
+    if (!body.geometryFile?.endsWith("UnitBox.obj")) continue;
+    const [sx,sy,sz] = body.scale.map((v) => Math.abs(v) * 0.5);
+    const [tx,ty,tz] = body.translation;
+    const corners = [
+      [-sx,-sy,-sz],[ sx,-sy,-sz],[-sx, sy,-sz],[ sx, sy,-sz],
+      [-sx,-sy, sz],[ sx,-sy, sz],[-sx, sy, sz],[ sx, sy, sz],
+    ].map(([x,y,z]) => project(x+tx,y+ty,z+tz));
+
+    ctx.beginPath();
+    for (const [a,b] of edges) {
+      ctx.moveTo(corners[a].x, corners[a].y);
+      ctx.lineTo(corners[b].x, corners[b].y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function draw() {
   resize();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -118,12 +151,13 @@ function draw() {
       ctx.fill();
     }
   }
+  drawRigidBodies();
 }
 
 function metrics(ms = 0) {
   if (!Module) return;
   particlesEl.textContent = String(Module._sph_particle_count());
-  boundaryParticlesEl.textContent = String(Module._sph_boundary_count());
+  boundaryModelsEl.textContent = String(Module._sph_boundary_model_count());
   stepsEl.textContent = String(Module._sph_step_count());
   simTimeEl.textContent = Module._sph_time().toFixed(4);
   physicsMsEl.textContent = ms.toFixed(3);
@@ -139,6 +173,7 @@ async function loadScene(name, updateSelect = true) {
   const ir = await loadSPlisHSPlasHScene(sceneUrl(name));
   await prepareBender2019Maps(Module, ir);
   const report = buildSceneFromIRWithPreparedBender(Module, ir);
+  currentIR = ir;
 
   if (updateSelect) sceneEl.value = name;
   methodEl.textContent = report.simulationMethod;

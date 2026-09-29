@@ -69,6 +69,17 @@ Small browser experiments for SPH implementations.
   - Reuses the same generic DFSPH ABI with two fluid blocks.
   - Expected browser scene: 7,200 fluid particles and 23,066 sampled UnitBox boundary particles.
 
+### Native Bender2019 browser boundary
+
+The shared Scene Browser now uses native Bender2019 volume maps for all five validated fixtures instead of the earlier sampled-Akinci2012 compatibility substitution.
+
+- `3.1 × 3.1 × 3.1 / 25³` serialized map: about 6.03 MB.
+- `4 × 3 × 1.5 / 40×30×15` serialized map: about 6.95 MB.
+- Cached map load in Node/WASM: about 17 ms versus roughly 9–15 s for generation.
+- Browser runtime fetches the matching `.cdm`, writes it to Emscripten MEMFS, and initializes `BoundaryModel_Bender2019` from the serialized Discregrid map.
+- Scene Browser CI rebuilds and advances all five upstream JSON scenes with native Bender2019 in one WASM module.
+- UnitBox geometry is drawn as an orange browser-side wireframe because Bender2019 has no boundary-particle cloud to render.
+
 ### Bender2019 volume-map probe
 
 - A separate WASM regression now constructs a real upstream `BoundaryModel_Bender2019`.

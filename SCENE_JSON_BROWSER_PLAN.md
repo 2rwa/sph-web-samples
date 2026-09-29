@@ -135,7 +135,7 @@ First implement a deterministic browser bridge for the known static UnitBox wall
 - keep the original JSON values visible,
 - record whether the representation is exact or an approximation.
 
-The upstream Bender2019 volume-map path is now proven in a separate WASM regression. A 25³ UnitBox map generated in about 12.4 seconds and contributed non-zero boundary volume during a real solver step. Browser integration should therefore preload/cache serialized `.cdm` maps rather than reconstruct them on every scene load.
+The upstream Bender2019 volume-map path is now integrated into the shared Scene Browser. Two serialized UnitBox `.cdm` maps cover the current five fixtures. The browser preloads the matching map into Emscripten MEMFS and initializes native `BoundaryModel_Bender2019`; the previous sampled-Akinci2012 substitution remains only in older standalone regression pages.
 
 ## Phase 4 — method coverage
 
