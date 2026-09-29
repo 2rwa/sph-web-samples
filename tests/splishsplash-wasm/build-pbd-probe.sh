@@ -16,6 +16,27 @@ bash "$TEST_DIR/build.sh"
 echo "== build SPlisHSPlasH-pinned PositionBasedDynamics with Emscripten =="
 cmake --build "$BUILD_DIR" --target Ext_PBD --parallel 2
 
+# Cached ExternalProject stamps can skip PATCH_COMMAND even when the helper
+# implementation changed.  Normalize the installed consumer header as well so
+# SPlisHSPlasH/Simulation.h and PBD Simulation/Simulation.h can coexist.
+PBD_SIM_HEADER="$BUILD_DIR/extern/install/PositionBasedDynamics/include/Simulation/Simulation.h"
+python3 - "$PBD_SIM_HEADER" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = "#ifndef __Simulation_h__\n#define __Simulation_h__"
+new = "#ifndef __PBD_Simulation_h__\n#define __PBD_Simulation_h__"
+if new not in text:
+    if text.count(old) != 1:
+        raise SystemExit(
+            f"unexpected installed PBD Simulation.h guard layout: {text.count(old)} matches"
+        )
+    path.write_text(text.replace(old, new, 1))
+print(f"pbd_simulation_header_guard={new.splitlines()[0]}")
+PY
+
 PBD_LIB="$(find "$BUILD_DIR" -type f -path '*PositionBasedDynamics*' -name 'libPositionBasedDynamics.a' -print -quit 2>/dev/null || true)"
 SIM_LIB="$(find "$BUILD_DIR" -type f -path '*PositionBasedDynamics*' -name 'libSimulation.a' -print -quit 2>/dev/null || true)"
 UTIL_LIB="$(find "$BUILD_DIR" -type f -path '*PositionBasedDynamics*' -name 'libUtils.a' -print -quit 2>/dev/null || true)"

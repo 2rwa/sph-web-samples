@@ -105,7 +105,24 @@ elif kind == "pbd-wasm-v2":
             )
         path.write_text(source.replace(needle, omp_compat, 1))
 
-    print(f"Patched Emscripten release/OpenMP compatibility in {src}")
+    # SPlisHSPlasH 2.18.1 and its pinned PBD revision both use
+    # __Simulation_h__ for different Simulation classes.  A translation unit
+    # that includes both therefore silently loses the second header.
+    simulation_header = src / "Simulation" / "Simulation.h"
+    simulation_text = simulation_header.read_text()
+    old_guard = "#ifndef __Simulation_h__\\n#define __Simulation_h__"
+    new_guard = "#ifndef __PBD_Simulation_h__\\n#define __PBD_Simulation_h__"
+    if new_guard not in simulation_text:
+        if simulation_text.count(old_guard) != 1:
+            raise RuntimeError(
+                "unexpected PBD Simulation.h include guard layout: "
+                f"{simulation_text.count(old_guard)} matches"
+            )
+        simulation_header.write_text(
+            simulation_text.replace(old_guard, new_guard, 1)
+        )
+
+    print(f"Patched Emscripten release/OpenMP/header compatibility in {src}")
     raise SystemExit(0)
 else:
     raise SystemExit(f"unknown dependency kind: {kind}")
