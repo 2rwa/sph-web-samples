@@ -10,10 +10,8 @@ OUT_DIR="$TEST_DIR/pbd-out"
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
-if [[ ! -f "$BUILD_DIR/build.ninja" ]]; then
-  echo "== no configured SPlisHSPlasH WASM tree; build the normal probe first =="
-  bash "$TEST_DIR/build.sh"
-fi
+echo "== ensure the cached SPlisHSPlasH tree matches the current prepare/build inputs =="
+bash "$TEST_DIR/build.sh"
 
 echo "== build SPlisHSPlasH-pinned PositionBasedDynamics with Emscripten =="
 cmake --build "$BUILD_DIR" --target Ext_PBD --parallel 2
