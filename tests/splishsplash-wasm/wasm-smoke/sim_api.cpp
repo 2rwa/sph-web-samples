@@ -4,6 +4,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
+#include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
@@ -64,6 +65,12 @@ Real g_builder_density0 = static_cast<Real>(1000.0);
 unsigned int g_builder_viscosity_method = 1u;
 Real g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
 Real g_builder_wcsph_exponent = static_cast<Real>(1.0);
+unsigned int g_builder_dfsph_min_iterations = 2u;
+unsigned int g_builder_dfsph_max_iterations = 100u;
+Real g_builder_dfsph_max_error = static_cast<Real>(0.05);
+unsigned int g_builder_dfsph_max_iterations_v = 100u;
+Real g_builder_dfsph_max_error_v = static_cast<Real>(0.1);
+bool g_builder_dfsph_divergence = true;
 bool g_builder_active = false;
 
 void reset_builder()
@@ -82,6 +89,12 @@ void reset_builder()
     g_builder_viscosity_method = 1u;
     g_builder_wcsph_stiffness = static_cast<Real>(25000.0);
     g_builder_wcsph_exponent = static_cast<Real>(1.0);
+    g_builder_dfsph_min_iterations = 2u;
+    g_builder_dfsph_max_iterations = 100u;
+    g_builder_dfsph_max_error = static_cast<Real>(0.05);
+    g_builder_dfsph_max_iterations_v = 100u;
+    g_builder_dfsph_max_error_v = static_cast<Real>(0.1);
+    g_builder_dfsph_divergence = true;
     g_builder_active = false;
 }
 
@@ -293,7 +306,9 @@ int commit_generic_scene()
 {
     if (!g_builder_active || g_pending_blocks.empty())
         return -10;
-    if (g_builder_simulation_method != static_cast<int>(SimulationMethods::WCSPH))
+    if (
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::WCSPH) &&
+        g_builder_simulation_method != static_cast<int>(SimulationMethods::DFSPH))
         return -11;
     if (!(g_builder_particle_radius > 0.0))
         return -12;
@@ -338,10 +353,25 @@ int commit_generic_scene()
     g_model->setDensity0(g_builder_density0);
     g_model->setViscosityMethod(g_builder_viscosity_method);
 
-    g_sim->setSimulationMethod(static_cast<int>(SimulationMethods::WCSPH));
-    TimeStepWCSPH* wcsph = static_cast<TimeStepWCSPH*>(g_sim->getTimeStep());
-    wcsph->setValue(TimeStepWCSPH::STIFFNESS, g_builder_wcsph_stiffness);
-    wcsph->setValue(TimeStepWCSPH::EXPONENT, g_builder_wcsph_exponent);
+    g_sim->setSimulationMethod(g_builder_simulation_method);
+
+    if (g_builder_simulation_method == static_cast<int>(SimulationMethods::WCSPH))
+    {
+        TimeStepWCSPH* wcsph = static_cast<TimeStepWCSPH*>(g_sim->getTimeStep());
+        wcsph->setValue(TimeStepWCSPH::STIFFNESS, g_builder_wcsph_stiffness);
+        wcsph->setValue(TimeStepWCSPH::EXPONENT, g_builder_wcsph_exponent);
+    }
+    else if (g_builder_simulation_method == static_cast<int>(SimulationMethods::DFSPH))
+    {
+        TimeStepDFSPH* dfsph = static_cast<TimeStepDFSPH*>(g_sim->getTimeStep());
+        dfsph->setValue(TimeStepDFSPH::MIN_ITERATIONS, g_builder_dfsph_min_iterations);
+        dfsph->setValue(TimeStepDFSPH::MAX_ITERATIONS, g_builder_dfsph_max_iterations);
+        dfsph->setValue(TimeStepDFSPH::MAX_ERROR, g_builder_dfsph_max_error);
+        dfsph->setValue(TimeStepDFSPH::MAX_ITERATIONS_V, g_builder_dfsph_max_iterations_v);
+        dfsph->setValue(TimeStepDFSPH::MAX_ERROR_V, g_builder_dfsph_max_error_v);
+        dfsph->setValue(TimeStepDFSPH::USE_DIVERGENCE_SOLVER, g_builder_dfsph_divergence);
+    }
+
     g_sim->setSimulationInitialized(1);
 
     if (!g_pending_boxes.empty())
@@ -591,6 +621,25 @@ EMSCRIPTEN_KEEPALIVE int sph_scene_set_wcsph(const float stiffness, const float 
         return 0;
     g_builder_wcsph_stiffness = static_cast<Real>(stiffness);
     g_builder_wcsph_exponent = static_cast<Real>(exponent);
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_scene_set_dfsph(
+    const unsigned int minIterations,
+    const unsigned int maxIterations,
+    const float maxError,
+    const unsigned int maxIterationsV,
+    const float maxErrorV,
+    const int enableDivergenceSolver)
+{
+    if (!g_builder_active)
+        return 0;
+    g_builder_dfsph_min_iterations = minIterations;
+    g_builder_dfsph_max_iterations = maxIterations;
+    g_builder_dfsph_max_error = static_cast<Real>(maxError);
+    g_builder_dfsph_max_iterations_v = maxIterationsV;
+    g_builder_dfsph_max_error_v = static_cast<Real>(maxErrorV);
+    g_builder_dfsph_divergence = enableDivergenceSolver != 0;
     return 1;
 }
 

@@ -95,7 +95,8 @@ export function normalizeSPlisHSPlasHScene(rawScene, sourceName = "scene") {
 
   const bridgeRequirements = [];
   const coreMethodKnown = SIMULATION_METHODS.has(simulationMethodId);
-  const browserMethodValidated = simulationMethod === "WCSPH";
+  const browserMethodValidated =
+    simulationMethod === "WCSPH" || simulationMethod === "DFSPH";
 
   if (!coreMethodKnown) {
     bridgeRequirements.push(`Unknown simulationMethod ${simulationMethodId}`);

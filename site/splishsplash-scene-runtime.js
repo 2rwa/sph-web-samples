@@ -12,8 +12,9 @@ function requireCall(result, name) {
 }
 
 export function buildSceneFromIR(Module, ir) {
-  if (ir.configuration.simulationMethod.name !== "WCSPH") {
-    throw new Error(`Generic browser ABI currently validates WCSPH only; got ${ir.configuration.simulationMethod.name}`);
+  const simulationMethod = ir.configuration.simulationMethod.name;
+  if (!["WCSPH", "DFSPH"].includes(simulationMethod)) {
+    throw new Error(`Generic browser ABI currently validates WCSPH/DFSPH only; got ${simulationMethod}`);
   }
 
   const unsupportedBodies = ir.rigidBodies.filter((body) =>
@@ -56,13 +57,27 @@ export function buildSceneFromIR(Module, ir) {
     "sph_scene_set_timing",
   );
 
-  requireCall(
-    Module._sph_scene_set_wcsph(
-      Number(ir.solver.parameters.stiffness ?? 50),
-      Number(ir.solver.parameters.exponent ?? 7),
-    ),
-    "sph_scene_set_wcsph",
-  );
+  if (simulationMethod === "WCSPH") {
+    requireCall(
+      Module._sph_scene_set_wcsph(
+        Number(ir.solver.parameters.stiffness ?? 50),
+        Number(ir.solver.parameters.exponent ?? 7),
+      ),
+      "sph_scene_set_wcsph",
+    );
+  } else if (simulationMethod === "DFSPH") {
+    requireCall(
+      Module._sph_scene_set_dfsph(
+        Number(ir.solver.parameters.minIterations ?? 2),
+        Number(ir.solver.parameters.maxIterations ?? 100),
+        Number(ir.solver.parameters.maxError ?? 0.01),
+        Number(ir.solver.parameters.maxIterationsV ?? 100),
+        Number(ir.solver.parameters.maxErrorV ?? 0.1),
+        ir.solver.parameters.enableDivergenceSolver === false ? 0 : 1,
+      ),
+      "sph_scene_set_dfsph",
+    );
+  }
 
   const material = ir.materials[0] ?? {
     density0: 1000,
@@ -122,6 +137,7 @@ export function buildSceneFromIR(Module, ir) {
 
   return {
     sourceScene: ir.sourceName,
+    simulationMethod,
     sourceBoundaryMethod: ir.configuration.boundaryHandlingMethod.name,
     effectiveBoundaryMethod: ir.rigidBodies.length ? "Akinci2012" : ir.configuration.boundaryHandlingMethod.name,
     sourceCflMax,

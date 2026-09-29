@@ -52,6 +52,11 @@ Small browser experiments for SPH implementations.
   - The two upstream blocks create 9,826 fluid particles with ±5 initial X velocity.
   - First boundary bridge: static, unrotated upstream `UnitBox.obj` with Bender2019 is explicitly substituted by a sampled Akinci2012 UnitBox. The source JSON remains unmodified.
   - Because that first sampled-boundary bridge is less stable than the upstream Bender2019 volume map, the effective CFL max is transparently capped at 0.001 for this bridge.
+- [SPlisHSPlasH JSON-driven DFSPH Dam Break](./site/tests/splishsplash-scene-dfsph/)
+  - Reads the unedited upstream `DamBreakModel.json`.
+  - The generic ABI now selects real upstream `TimeStepDFSPH` and forwards its min/max iterations, density error limits, divergence iteration/error limits, and divergence-solver toggle.
+  - The upstream fluid block becomes 9,261 particles at radius 0.025.
+  - The Bender2019 UnitBox is still an explicit sampled-Akinci2012 compatibility bridge for this phase.
 
 See [SPLISHSPLASH_WASM_MILESTONE_20260929.md](./SPLISHSPLASH_WASM_MILESTONE_20260929.md) for the frozen WASM milestone and [SCENE_JSON_BROWSER_PLAN.md](./SCENE_JSON_BROWSER_PLAN.md) for the next architecture phase.
 
@@ -174,6 +179,7 @@ node tests/splishsplash_browser_contract.mjs
 node tests/splishsplash_dambreak_contract.mjs
 node tests/splishsplash_scene_json_contract.mjs
 node tests/splishsplash_generic_scene_contract.mjs
+node tests/splishsplash_generic_dfsph_contract.mjs
 python3 -m http.server -d site 8000
 ```
 

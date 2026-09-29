@@ -8,6 +8,13 @@ int sph_scene_begin(float particleRadius, int simulationMethod, int boundaryMeth
 int sph_scene_set_gravity(float x, float y, float z);
 int sph_scene_set_timing(int cflMethod, float cflFactor, float cflMax, float initialDt);
 int sph_scene_set_wcsph(float stiffness, float exponent);
+int sph_scene_set_dfsph(
+    unsigned int minIterations,
+    unsigned int maxIterations,
+    float maxError,
+    unsigned int maxIterationsV,
+    float maxErrorV,
+    int enableDivergenceSolver);
 int sph_scene_set_material(float density0, unsigned int viscosityMethod);
 int sph_scene_add_fluid_block(
     float sx, float sy, float sz,
@@ -266,6 +273,95 @@ int main()
                   << " x0=" << x0
                   << " x1=" << x1
                   << " minY=" << y1
+                  << " time=" << time << "\n";
+
+        sph_destroy();
+    }
+
+
+
+    {
+        if (!sph_scene_begin(0.025f, 4, 2))
+            return 50;
+
+        sph_scene_set_gravity(0.0f, -9.81f, 0.0f);
+        // Upstream DamBreakModel.json requests Bender2019 with CFL max 0.005.
+        // The first browser bridge uses sampled Akinci2012 walls and a 0.001 cap.
+        sph_scene_set_timing(1, 1.0f, 0.001f, 0.001f);
+        sph_scene_set_dfsph(2u, 100u, 0.05f, 100u, 0.1f, 1);
+        sph_scene_set_material(1000.0f, 1u);
+
+        const int blocks = sph_scene_add_fluid_block(
+            -0.5f, 0.0f, -0.5f,
+             0.5f, 1.0f,  0.5f,
+            -1.45f, 0.05f, 0.0f,
+             1.0f, 1.0f, 1.0f,
+             0.0f, 0.0f, 0.0f,
+             0);
+        const int boxes = sph_scene_add_unit_box(
+            0.0f, 1.5f, 0.0f,
+            4.0f, 3.0f, 1.5f);
+
+        const int count = sph_scene_commit();
+        const int boundaryCount = sph_boundary_count();
+        const float centerY0 = sph_center_y();
+        const float minY0 = sph_min_y();
+
+        if (
+            blocks != 1 ||
+            boxes != 1 ||
+            count != 9261 ||
+            boundaryCount != 18002 ||
+            !sph_all_finite() ||
+            minY0 < 0.049f)
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_DFSPH_WASM_FAIL init"
+                      << " blocks=" << blocks
+                      << " boxes=" << boxes
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " centerY=" << centerY0
+                      << " minY=" << minY0 << "\n";
+            sph_destroy();
+            return 51;
+        }
+
+        const int steps = sph_step(2);
+        const float centerY1 = sph_center_y();
+        const float minY1 = sph_min_y();
+        const float time = sph_time();
+
+        const bool ok =
+            steps == 2 &&
+            sph_all_finite() &&
+            std::isfinite(centerY1) &&
+            std::isfinite(minY1) &&
+            centerY1 < centerY0 &&
+            minY1 > 0.0f &&
+            time > 0.0f;
+
+        if (!ok)
+        {
+            std::cerr << "SPLISHSPLASH_GENERIC_DFSPH_WASM_FAIL runtime"
+                      << " particles=" << count
+                      << " boundary=" << boundaryCount
+                      << " steps=" << steps
+                      << " centerY0=" << centerY0
+                      << " centerY1=" << centerY1
+                      << " minY0=" << minY0
+                      << " minY1=" << minY1
+                      << " time=" << time << "\n";
+            sph_destroy();
+            return 52;
+        }
+
+        std::cout << "SPLISHSPLASH_GENERIC_DFSPH_WASM_OK"
+                  << " particles=" << count
+                  << " boundary=" << boundaryCount
+                  << " steps=" << steps
+                  << " centerY0=" << centerY0
+                  << " centerY1=" << centerY1
+                  << " minY=" << minY1
                   << " time=" << time << "\n";
 
         sph_destroy();
