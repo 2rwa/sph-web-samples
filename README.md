@@ -35,6 +35,12 @@ Small browser experiments for SPH implementations.
   - The first milestone is deliberately boundary-free so browser execution can be isolated from boundary-model setup.
   - CI runs 40 WCSPH steps in both Node and Headless Chrome and verifies finite positions plus downward center-of-mass motion.
   - Generated browser JS/WASM is placed in `site/vendor/splishsplash/` during the Pages build.
+- [SPlisHSPlasH WCSPH + Akinci2012 Dam Break](./site/tests/splishsplash-wasm-dambreak/)
+  - Uses the upstream `BoundaryModel_Akinci2012` and `StaticRigidBody` path.
+  - The open-top tank is sampled as actual boundary particles and visualized in orange.
+  - Fluid presets: 432 / 896 / 1600 particles.
+  - CI advances 220 WCSPH steps and verifies finite positions plus floor containment after a duration that would send the boundary-free control far below y=0.
+  - Boundary count, minimum fluid Y, maximum fluid X, simulation time, and physics ms are shown in the browser.
 
 ## WebGPU raymarch experiments
 
@@ -152,6 +158,7 @@ wasm-pack build --release --target web --out-dir site/pkg
 bash tests/splishsplash-wasm/build.sh
 node tests/page_contract.mjs
 node tests/splishsplash_browser_contract.mjs
+node tests/splishsplash_dambreak_contract.mjs
 python3 -m http.server -d site 8000
 ```
 

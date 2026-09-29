@@ -56,7 +56,9 @@ jobs:
         run: bash tests/splishsplash-wasm/build.sh
 
       - name: Test SPlisHSPlasH page contract
-        run: node tests/splishsplash_browser_contract.mjs
+        run: |
+          node tests/splishsplash_browser_contract.mjs
+          node tests/splishsplash_dambreak_contract.mjs
 
       - name: Test WASM runtime reset
         run: node tests/wasm_runtime.mjs
@@ -100,6 +102,12 @@ jobs:
           trap cleanup EXIT
 
           if ! node tests/splishsplash_browser_cdp.mjs; then
+            cat /tmp/sph-http.log || true
+            cat /tmp/chrome.log || true
+            exit 1
+          fi
+
+          if ! node tests/splishsplash_dambreak_cdp.mjs; then
             cat /tmp/sph-http.log || true
             cat /tmp/chrome.log || true
             exit 1
