@@ -6,7 +6,14 @@ const sample = readFileSync("site/samples/salva-canvas/index.html", "utf8");
 const benchmark = readFileSync("site/samples/salva-benchmark/index.html", "utf8");
 const interactive = readFileSync("site/samples/salva-interactive-obstacles/index.html", "utf8");
 const sample3d = readFileSync("site/samples/salva-3d-canvas/index.html", "utf8");
-const webgl3d = readFileSync("site/samples/salva-3d-webgl2/index.html", "utf8");
+const webgl3dPages = {
+  "basic": readFileSync("site/samples/salva-3d-webgl2/index.html", "utf8"),
+  "custom-forces": readFileSync("site/samples/salva-3d-webgl2-custom-forces/index.html", "utf8"),
+  "elasticity": readFileSync("site/samples/salva-3d-webgl2-elasticity/index.html", "utf8"),
+  "faucet": readFileSync("site/samples/salva-3d-webgl2-faucet/index.html", "utf8"),
+  "heightfield": readFileSync("site/samples/salva-3d-webgl2-heightfield/index.html", "utf8"),
+  "surface-tension": readFileSync("site/samples/salva-3d-webgl2-surface-tension/index.html", "utf8"),
+};
 const app = readFileSync("site/app.js", "utf8");
 const benchmarkApp = readFileSync("site/benchmark.js", "utf8");
 const interactiveApp = readFileSync("site/interactive-obstacles.js", "utf8");
@@ -46,6 +53,11 @@ assert.match(top, /href="\.\/samples\/salva-benchmark\/"/);
 assert.match(top, /href="\.\/samples\/salva-interactive-obstacles\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-canvas\/"/);
 assert.match(top, /href="\.\/samples\/salva-3d-webgl2\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2-custom-forces\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2-elasticity\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2-faucet\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2-heightfield\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-webgl2-surface-tension\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-basic\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-custom-forces\/"/);
 assert.match(top, /href="\.\/samples\/salva-official-elasticity\/"/);
@@ -114,20 +126,25 @@ assert.match(app3d, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.04", impo
 assert.match(app3d, /projected\.sort/);
 assert.match(app3d, /sim\.step\(fixedDt\)/);
 
-assert.match(webgl3d, /<canvas\s+id="view"/);
-assert.match(webgl3d, /WebGL2/);
-assert.match(webgl3d, /3d-webgl2\.js\?v=1\.40/);
-assert.match(webgl3d, /Physics ms/);
-assert.match(webgl3d, /Render ms/);
+for (const [mode, html] of Object.entries(webgl3dPages)) {
+  assert.match(html, new RegExp(`data-webgl3d-mode="${mode}"`));
+  assert.match(html, /<canvas\s+id="view"/);
+  assert.match(html, /WebGL2/);
+  assert.match(html, /3d-webgl2\.js\?v=1\.41/);
+  assert.match(html, /Physics ms/);
+  assert.match(html, /Render ms/);
+}
 assert.match(webgl3dApp, /OfficialExample3dSimulation/);
-assert.match(webgl3dApp, /new OfficialExample3dSimulation\("basic"\)/);
+assert.match(webgl3dApp, /dataset\.webgl3dMode/);
+assert.match(webgl3dApp, /new OfficialExample3dSimulation\(mode\)/);
+assert.match(webgl3dApp, /sim\.fluid_count\(\)/);
 assert.match(webgl3dApp, /getContext\("webgl2"/);
 assert.match(webgl3dApp, /gl\.enable\(gl\.DEPTH_TEST\)/);
 assert.match(webgl3dApp, /gl\.drawArrays\(gl\.POINTS/);
 assert.match(webgl3dApp, /gl\.bufferData/);
 assert.match(webgl3dApp, /gl_PointCoord/);
-assert.match(webgl3dApp, /sph_web_samples\.js\?v=1\.40/);
-assert.match(webgl3dApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.40", import\.meta\.url\)/);
+assert.match(webgl3dApp, /sph_web_samples\.js\?v=1\.41/);
+assert.match(webgl3dApp, /new URL\("\.\/pkg\/sph_web_samples_bg\.wasm\?v=1\.41", import\.meta\.url\)/);
 assert.doesNotMatch(webgl3dApp, /projected\.sort/);
 
 for (const [mode, html] of Object.entries(officialPages)) {
@@ -187,4 +204,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + twenty-one samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + twenty-six samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
