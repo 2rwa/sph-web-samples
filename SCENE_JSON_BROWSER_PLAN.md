@@ -78,11 +78,11 @@ It should distinguish:
 
 ## Current progress
 
-- Phase 1 JavaScript parser / normalized IR: implemented for the first three fixtures.
-- Phase 2 generic C ABI: WCSPH and DFSPH builders implemented.
-- End-to-end targets: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, `DoubleDamBreak.json`, `CompressibleSPH_ICSPH.json`, and `CompressibleSPH_PF.json`.
-- The browser currently substitutes static unrotated Bender2019 UnitBox walls with sampled Akinci2012 UnitBox particles and reports that substitution explicitly.
-- The first bridge also caps the effective CFL max at 0.001 while preserving the source JSON value for diagnostics.
+- Phase 1 JavaScript parser / normalized IR: implemented and used by the shared Scene Browser.
+- Phase 2 generic C ABI: WCSPH, DFSPH, IISPH, ICSPH, and Projective Fluids are implemented.
+- Material forwarding now covers the viscosity models used by the current compressible and buckling fixtures: Standard, Bender2017, Peer2015, Peer2016, Takahashi2015, and Weiler2018.
+- Native Bender2019 is used in the shared Scene Browser through precomputed Discregrid `.cdm` maps.
+- Three UnitBox maps currently cover the validated scene set: 3.1³/25³ inverted, 4×3×1.5/40×30×15 inverted, and 3×0.5×3/20³ non-inverted.
 
 ## Phase 2 — generic C ABI
 
@@ -154,7 +154,7 @@ Each method gets a small Node/WASM regression before being exposed in the browse
 
 ## Phase 5 — browser Demo shell
 
-Current first pass: a shared scene browser switches five validated upstream fixtures in one Emscripten module. CI rebuilds all five scenes sequentially through the generic ABI.
+Current first pass: a shared scene browser switches the validated upstream compressible, dam-break, and buckling fixtures in one Emscripten module. CI rebuilds every listed scene sequentially through the generic ABI.
 
 
 

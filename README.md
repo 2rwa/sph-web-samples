@@ -28,10 +28,10 @@ Small browser experiments for SPH implementations.
 ## SPlisHSPlasH WebAssembly
 
 - [SPlisHSPlasH upstream Scene JSON browser](./site/tests/splishsplash-scene-browser/)
-  - One browser page / one WASM core can rebuild and switch among five unedited upstream fixtures.
-  - Solvers currently validated through the generic ABI: WCSPH, DFSPH, ICSPH, and Projective Fluids.
-  - Fixtures: `CompressibleSPH_WCSPH.json`, `DamBreakModel.json`, `DoubleDamBreak.json`, `CompressibleSPH_ICSPH.json`, and `CompressibleSPH_PF.json`.
-  - CI rebuilds all five scenes sequentially in one Emscripten module without scene-specific C++ initialization.
+  - One browser page / one WASM core rebuilds and switches among ten unedited upstream fixtures.
+  - Solvers validated through the generic ABI: WCSPH, DFSPH, IISPH, ICSPH, and Projective Fluids.
+  - The buckling fixtures additionally exercise Standard, Bender2017, Peer2015, Peer2016, Takahashi2015, and Weiler2018 viscosity configuration from Scene JSON.
+  - CI rebuilds all ten scenes sequentially in one Emscripten module without scene-specific C++ initialization.
 
 
 - [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)
@@ -71,13 +71,14 @@ Small browser experiments for SPH implementations.
 
 ### Native Bender2019 browser boundary
 
-The shared Scene Browser now uses native Bender2019 volume maps for all five validated fixtures instead of the earlier sampled-Akinci2012 compatibility substitution.
+The shared Scene Browser now uses native Bender2019 volume maps for all validated fixtures instead of the earlier sampled-Akinci2012 compatibility substitution.
 
 - `3.1 × 3.1 × 3.1 / 25³` serialized map: about 6.03 MB.
 - `4 × 3 × 1.5 / 40×30×15` serialized map: about 6.95 MB.
+- `3 × 0.5 × 3 / 20³`, non-inverted obstacle map: about 3.11 MB.
 - Cached map load in Node/WASM: about 17 ms versus roughly 9–15 s for generation.
 - Browser runtime fetches the matching `.cdm`, writes it to Emscripten MEMFS, and initializes `BoundaryModel_Bender2019` from the serialized Discregrid map.
-- Scene Browser CI rebuilds and advances all five upstream JSON scenes with native Bender2019 in one WASM module.
+- Scene Browser CI rebuilds and advances all current upstream JSON fixtures with native Bender2019 in one WASM module.
 - UnitBox geometry is drawn as an orange browser-side wireframe because Bender2019 has no boundary-particle cloud to render.
 
 ### Bender2019 volume-map probe

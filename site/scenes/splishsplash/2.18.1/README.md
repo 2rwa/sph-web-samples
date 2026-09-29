@@ -15,4 +15,14 @@ Fixtures:
 - `CompressibleSPH_ICSPH.json`
 - `CompressibleSPH_PF.json`
 
+- `BucklingModel_Peer2015.json`
+
+- `BucklingModel_Peer2016.json`
+
+- `BucklingModel_Bender2017.json`
+
+- `BucklingModel_Takahashi2015.json`
+
+- `BucklingModel_Weiler2018.json`
+
 The browser adapter must preserve the original JSON meaning. If a browser-side bridge substitutes a desktop implementation detail, that substitution must be reported explicitly by the compatibility layer rather than silently rewriting the fixture.
