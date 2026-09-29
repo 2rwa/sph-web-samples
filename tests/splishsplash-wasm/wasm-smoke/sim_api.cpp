@@ -30,6 +30,9 @@
 #ifdef SPLISHSPLASH_ENABLE_PBD
 #include "Simulator/PositionBasedDynamicsWrapper/PBDRigidBody.h"
 #include "PositionBasedDynamics/TimeIntegration.h"
+#include "Simulation/Simulation.h"
+#include "Simulation/SimulationModel.h"
+#include "Simulation/TimeManager.h"
 #endif
 
 #include <algorithm>
@@ -53,6 +56,7 @@ BoundaryModel_Akinci2012* g_boundary = nullptr;
 BoundaryModel_Bender2019* g_boundary_bender = nullptr;
 #ifdef SPLISHSPLASH_ENABLE_PBD
 PBD::RigidBody* g_pbd_body = nullptr;
+PBD::SimulationModel* g_pbd_model = nullptr;
 Real g_pbd_max_boundary_force = 0.0;
 Real g_pbd_last_boundary_force = 0.0;
 #endif
@@ -317,8 +321,21 @@ void destroy_simulation()
         delete Simulation::getCurrent();
 
 #ifdef SPLISHSPLASH_ENABLE_PBD
-    delete g_pbd_body;
-    g_pbd_body = nullptr;
+    if (PBD::Simulation::hasCurrent())
+        delete PBD::Simulation::getCurrent();
+
+    if (g_pbd_model != nullptr)
+    {
+        delete g_pbd_model;
+        g_pbd_model = nullptr;
+        g_pbd_body = nullptr;
+    }
+    else
+    {
+        delete g_pbd_body;
+        g_pbd_body = nullptr;
+    }
+
     g_pbd_max_boundary_force = 0.0;
     g_pbd_last_boundary_force = 0.0;
 #endif
@@ -1771,6 +1788,79 @@ EMSCRIPTEN_KEEPALIVE int sph_bender_promote_dynamic_pbd(const float mass)
     g_pbd_max_boundary_force = 0.0;
     g_pbd_last_boundary_force = 0.0;
     return bridge->isDynamic() ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_pbd_enable_upstream_timestep(const float gravityScale)
+{
+    if (g_pbd_body == nullptr || g_pbd_model != nullptr || !std::isfinite(gravityScale))
+        return 0;
+
+    PBD::SimulationModel* model = new PBD::SimulationModel();
+    model->init();
+    model->getRigidBodies().push_back(g_pbd_body);
+
+    PBD::Simulation* simulation = PBD::Simulation::getCurrent();
+    simulation->setModel(model);
+
+    Vector3r gravity = g_builder_gravity * static_cast<Real>(gravityScale);
+    simulation->setVecValue<Real>(PBD::Simulation::GRAVITATION, &gravity[0]);
+
+    PBD::TimeManager::getCurrent()->setTime(TimeManager::getCurrent()->getTime());
+    PBD::TimeManager::getCurrent()->setTimeStepSize(TimeManager::getCurrent()->getTimeStepSize());
+
+    g_pbd_model = model;
+    return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE int sph_step_dynamic_pbd_upstream(const int steps)
+{
+    if (!g_sim || !g_model || !g_sim->getTimeStep() ||
+        !g_boundary_bender || g_pbd_body == nullptr || g_pbd_model == nullptr ||
+        !PBD::Simulation::hasCurrent())
+        return -1;
+
+    const int count = std::max(0, std::min(2000, steps));
+    PBD::Simulation* pbdSimulation = PBD::Simulation::getCurrent();
+
+    for (int i = 0; i < count; ++i)
+    {
+        g_sim->getTimeStep()->step();
+
+        Vector3r force = Vector3r::Zero();
+        Vector3r torque = Vector3r::Zero();
+        g_boundary_bender->getForceAndTorque(force, torque);
+        g_pbd_last_boundary_force = force.norm();
+        g_pbd_max_boundary_force = std::max(g_pbd_max_boundary_force, g_pbd_last_boundary_force);
+
+        RigidBodyObject* bridge = g_boundary_bender->getRigidBodyObject();
+        bridge->addForce(force);
+        bridge->addTorque(torque);
+        g_boundary_bender->clearForceAndTorque();
+
+        const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+        PBD::TimeManager::getCurrent()->setTimeStepSize(dt);
+        PBD::TimeManager::getCurrent()->setTime(TimeManager::getCurrent()->getTime());
+        pbdSimulation->getTimeStep()->step(*g_pbd_model);
+
+        const Real maxDist = g_boundary_bender->getMaxDist();
+        const Vector3r radial(maxDist, 0.0, 0.0);
+        const Vector3r boundaryVelocity =
+            g_pbd_body->getAngularVelocity().cross(radial) +
+            g_pbd_body->getVelocity();
+        g_boundary_bender->setMaxVel(boundaryVelocity.norm());
+
+        ++g_step_count;
+    }
+
+    refresh_positions();
+    return static_cast<int>(g_step_count);
+}
+
+EMSCRIPTEN_KEEPALIVE float sph_pbd_upstream_time()
+{
+    if (g_pbd_model == nullptr || !PBD::TimeManager::hasCurrent())
+        return -1.0f;
+    return static_cast<float>(PBD::TimeManager::getCurrent()->getTime());
 }
 
 EMSCRIPTEN_KEEPALIVE int sph_step_dynamic_pbd(const int steps)

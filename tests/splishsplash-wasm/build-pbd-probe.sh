@@ -120,3 +120,16 @@ if [[ -z "$PBD_TIMESTEP_JS" || ! -s "$PBD_TIMESTEP_JS" || ! -s "${PBD_TIMESTEP_J
 fi
 /usr/bin/node "$PBD_TIMESTEP_JS" | tee "$OUT_DIR/pbd-timestep-runtime.txt"
 grep -q 'SPLISHSPLASH_PBD_TIMESTEP_WASM_OK' "$OUT_DIR/pbd-timestep-runtime.txt"
+
+echo "== run SPH -> Bender2019 -> upstream PBD timestep coupling probe =="
+cmake --build "$BUILD_DIR" --target splishsplash_pbd_upstream_coupling_smoke --parallel 2
+PBD_UPSTREAM_JS="$(find "$WORK_ROOT/SPlisHSPlasH/bin" "$BUILD_DIR" -type f -name 'splishsplash_pbd_upstream_coupling_smoke.js' -print -quit 2>/dev/null || true)"
+if [[ -z "$PBD_UPSTREAM_JS" || ! -s "$PBD_UPSTREAM_JS" || ! -s "${PBD_UPSTREAM_JS%.js}.wasm" ]]; then
+  echo "PBD upstream coupling smoke output not found" >&2
+  exit 27
+fi
+(
+  cd "$WORK_ROOT/maps"
+  /usr/bin/node "$PBD_UPSTREAM_JS"
+) | tee "$OUT_DIR/pbd-upstream-coupling-runtime.txt"
+grep -q 'SPLISHSPLASH_PBD_UPSTREAM_COUPLING_WASM_OK' "$OUT_DIR/pbd-upstream-coupling-runtime.txt"
