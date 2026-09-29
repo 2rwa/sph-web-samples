@@ -183,11 +183,12 @@ async function rebuild() {
   const particles=Module._sph_scene_commit();
   if(particles!==1331) throw new Error("Unexpected particle count "+particles);
   if(!Module._sph_bender_promote_dynamic_pbd_box(mass,3,0.5,3)) throw new Error("PBD promotion failed");
+  if(!Module._sph_pbd_enable_upstream_timestep(0)) throw new Error("upstream PBD timestep setup failed");
 
   plateY0=Module._sph_pbd_body_position_y();
   running=true;
   pauseEl.textContent="Pause";
-  statusEl.textContent=`Running / ${modeEl.value} / mass=${mass} kg / fluidVy=${fluidVy} m/s / fluidGravityY=${currentGravityY}`;
+  statusEl.textContent=`Running / upstream PBD / ${modeEl.value} / mass=${mass} kg / fluidVy=${fluidVy} m/s / fluidGravityY=${currentGravityY}`;
   rebuilding=false;
   metrics();
   draw();
@@ -197,7 +198,7 @@ function frame() {
   let ms=0;
   if(Module && running && !rebuilding) {
     const t0=performance.now();
-    Module._sph_step_dynamic_pbd(1);
+    Module._sph_step_dynamic_pbd_upstream(1);
     ms=performance.now()-t0;
     if(!Module._sph_all_finite()) {
       running=false;
@@ -235,7 +236,7 @@ function fail(error) {
 
 function sampleCoupling(steps) {
   const y0=Module._sph_pbd_body_position_y();
-  const stepResult=Module._sph_step_dynamic_pbd(steps);
+  const stepResult=Module._sph_step_dynamic_pbd_upstream(steps);
   const y1=Module._sph_pbd_body_position_y();
   return {
     steps:stepResult,

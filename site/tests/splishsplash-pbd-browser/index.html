@@ -26,8 +26,8 @@
   <h1>SPlisHSPlasH PBD two-way coupling</h1>
   <p>
     Native DFSPH fluid → Bender2019 volume-map boundary force → PositionBasedDynamics rigid body,
-    all compiled to WebAssembly. Two CI-tuned presets are available: direct impact and
-    gravity-driven fluid impact.
+    advanced by the upstream PBD TimeStepController (including its substeps and constraint projection),
+    all compiled to WebAssembly. Two CI-tuned presets are available: direct impact and gravity-driven fluid impact.
   </p>
   <p class="note" id="mode-note">
     Direct impact isolates the coupling path with zero gravity: 250 kg plate and fluid initial velocity −0.5 m/s.
