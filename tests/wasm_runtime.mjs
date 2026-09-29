@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import init, { InteractiveSimulation } from "../site/pkg/sph_web_samples.js";
+import init, { InteractiveSimulation, Simulation3d } from "../site/pkg/sph_web_samples.js";
 
 const wasm = await readFile(new URL("../site/pkg/sph_web_samples_bg.wasm", import.meta.url));
 await init(wasm);
@@ -21,3 +21,11 @@ assert.equal(sim.obstacle_count(), 1);
 assert.deepEqual(Array.from(sim.obstacle_points()), Array.from(obstaclePoints));
 
 console.log("wasm runtime reset OK: 1000 -> 3000, obstacle preserved");
+
+
+const sim3d = new Simulation3d();
+assert.equal(sim3d.particle_count(), 512);
+assert.equal(sim3d.positions().length, 1536);
+sim3d.step(1 / 200);
+assert.equal(sim3d.positions().length, 1536);
+console.log("wasm runtime 3D OK: 512 particles, XYZ buffer");

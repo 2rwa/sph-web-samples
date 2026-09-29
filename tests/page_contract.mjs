@@ -5,9 +5,11 @@ const top = readFileSync("site/index.html", "utf8");
 const sample = readFileSync("site/samples/salva-canvas/index.html", "utf8");
 const benchmark = readFileSync("site/samples/salva-benchmark/index.html", "utf8");
 const interactive = readFileSync("site/samples/salva-interactive-obstacles/index.html", "utf8");
+const sample3d = readFileSync("site/samples/salva-3d-canvas/index.html", "utf8");
 const app = readFileSync("site/app.js", "utf8");
 const benchmarkApp = readFileSync("site/benchmark.js", "utf8");
 const interactiveApp = readFileSync("site/interactive-obstacles.js", "utf8");
+const app3d = readFileSync("site/3d-canvas.js", "utf8");
 const glue = readFileSync("site/pkg/sph_web_samples.js", "utf8");
 const wasm = readFileSync("site/pkg/sph_web_samples_bg.wasm");
 
@@ -15,6 +17,7 @@ assert.match(top, /<h1>SPH Web Samples<\/h1>/);
 assert.match(top, /href="\.\/samples\/salva-canvas\/"/);
 assert.match(top, /href="\.\/samples\/salva-benchmark\/"/);
 assert.match(top, /href="\.\/samples\/salva-interactive-obstacles\/"/);
+assert.match(top, /href="\.\/samples\/salva-3d-canvas\/"/);
 assert.doesNotMatch(top, /<canvas\b/);
 
 assert.match(sample, /<canvas\s+id="view"/);
@@ -58,12 +61,22 @@ assert.match(interactiveApp, /clear_obstacles/);
 assert.match(interactiveApp, /reset_particles/);
 assert.match(interactiveApp, /particleCountSelect\.value/);
 
+assert.match(sample3d, /<canvas\s+id="view"/);
+assert.match(sample3d, /3D SPH particles projected as Canvas dots/);
+assert.match(sample3d, /3d-canvas\.js\?v=1\.03/);
+assert.match(app3d, /Simulation3d/);
+assert.match(app3d, /sph_web_samples\.js\?v=1\.03/);
+assert.match(app3d, /sph_web_samples_bg\.wasm\?v=1\.03/);
+assert.match(app3d, /projected\.sort/);
+assert.match(app3d, /sim\.step\(fixedDt\)/);
+
 assert.match(app, /Simulation/);
 assert.match(app, /\.\/pkg\/sph_web_samples\.js/);
 assert.match(app, /sim\.step\(fixedDt\)/);
 assert.match(glue, /class Simulation/);
 assert.match(glue, /class BenchmarkSimulation/);
 assert.match(glue, /class InteractiveSimulation/);
+assert.match(glue, /class Simulation3d/);
 
 assert.ok(statSync("site/pkg/sph_web_samples_bg.wasm").size > 10_000, "WASM should be non-trivial");
 assert.deepEqual([...wasm.subarray(0, 4)], [0x00, 0x61, 0x73, 0x6d], "WASM magic must be valid");
@@ -72,4 +85,4 @@ const module = new WebAssembly.Module(wasm);
 const exportNames = WebAssembly.Module.exports(module).map((entry) => entry.name);
 assert.ok(exportNames.some((name) => name.includes("simulation")), "WASM should export simulation bindings");
 
-console.log(`page contract OK: top + three samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);
+console.log(`page contract OK: top + four samples, wasm=${wasm.length} bytes, exports=${exportNames.length}`);

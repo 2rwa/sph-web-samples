@@ -1,4 +1,8 @@
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector3};
+use salva3d::object::interaction_groups::InteractionGroups as InteractionGroups3d;
+use salva3d::object::{Boundary as Boundary3d, Fluid as Fluid3d, FluidHandle as FluidHandle3d};
+use salva3d::solver::IISPHSolver as IISPHSolver3d;
+use salva3d::LiquidWorld as LiquidWorld3d;
 use salva2d::object::interaction_groups::InteractionGroups;
 use salva2d::object::{Boundary, BoundaryHandle, Fluid, FluidHandle};
 use salva2d::solver::IISPHSolver;
@@ -19,6 +23,11 @@ const INTERACTIVE_MIN_PARTICLES: usize = 1_000;
 const INTERACTIVE_MAX_PARTICLES: usize = 5_000;
 const INTERACTIVE_HALF_WIDTH: f32 = 1.80;
 const INTERACTIVE_HALF_HEIGHT: f32 = 1.35;
+
+const PARTICLE3D_RADIUS: f32 = 0.04;
+const PARTICLE3D_AXIS: usize = 8;
+const FLOOR3D_HALF_EXTENT: f32 = 0.90;
+const FLOOR3D_Y: f32 = -0.65;
 
 #[wasm_bindgen]
 pub struct Simulation {
@@ -547,6 +556,131 @@ fn layered_line_points(
         for i in 0..=steps {
             let t = i as f32 / steps as f32;
             points.push(a + delta * t + normal * offset);
+        }
+    }
+
+    points
+}
+
+
+#[wasm_bindgen]
+pub struct Simulation3d {
+    world: LiquidWorld3d,
+    fluid: FluidHandle3d,
+}
+
+#[wasm_bindgen]
+impl Simulation3d {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        let solver: IISPHSolver3d = IISPHSolver3d::new();
+        let mut world = LiquidWorld3d::new(
+            solver,
+            PARTICLE3D_RADIUS,
+            SMOOTHING_FACTOR,
+            1.0,
+        );
+
+        let fluid = Fluid3d::new(
+            initial_particles_3d(),
+            PARTICLE3D_RADIUS,
+            1000.0,
+            InteractionGroups3d::default(),
+        );
+        let fluid = world.add_fluid(fluid);
+
+        world.add_boundary(Boundary3d::new(
+            floor_boundary_3d(),
+            InteractionGroups3d::default(),
+        ));
+
+        Self { world, fluid }
+    }
+
+    pub fn particle_count(&self) -> usize {
+        self.world
+            .fluids()
+            .get(self.fluid)
+            .map(Fluid3d::num_particles)
+            .unwrap_or(0)
+    }
+
+    pub fn step(&mut self, dt: f32) {
+        if !dt.is_finite() || dt <= 0.0 {
+            return;
+        }
+
+        let dt = dt.clamp(1.0 / 1000.0, 1.0 / 60.0);
+        self.world.step(dt, &Vector3::new(0.0, -9.81, 0.0));
+    }
+
+    pub fn positions(&self) -> Vec<f32> {
+        let Some(fluid) = self.world.fluids().get(self.fluid) else {
+            return Vec::new();
+        };
+
+        let mut out = Vec::with_capacity(fluid.positions.len() * 3);
+        for p in &fluid.positions {
+            out.push(p.x);
+            out.push(p.y);
+            out.push(p.z);
+        }
+        out
+    }
+
+    pub fn floor_y(&self) -> f32 {
+        FLOOR3D_Y
+    }
+
+    pub fn floor_half_extent(&self) -> f32 {
+        FLOOR3D_HALF_EXTENT
+    }
+}
+
+impl Default for Simulation3d {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn initial_particles_3d() -> Vec<Vector3<f32>> {
+    let spacing = PARTICLE3D_RADIUS * 2.0;
+    let extent = (PARTICLE3D_AXIS - 1) as f32 * spacing;
+    let left = -extent * 0.5;
+    let bottom = -0.15;
+    let back = -extent * 0.5;
+    let mut particles = Vec::with_capacity(PARTICLE3D_AXIS.pow(3));
+
+    for y in 0..PARTICLE3D_AXIS {
+        for x in 0..PARTICLE3D_AXIS {
+            for z in 0..PARTICLE3D_AXIS {
+                particles.push(Vector3::new(
+                    left + x as f32 * spacing,
+                    bottom + y as f32 * spacing,
+                    back + z as f32 * spacing,
+                ));
+            }
+        }
+    }
+
+    particles
+}
+
+fn floor_boundary_3d() -> Vec<Vector3<f32>> {
+    let spacing = PARTICLE3D_RADIUS * 2.0;
+    let side = ((FLOOR3D_HALF_EXTENT * 2.0 / spacing).ceil() as usize).max(1);
+    let mut points = Vec::with_capacity((side + 1) * (side + 1) * 2);
+
+    for layer in 0..2 {
+        let y = FLOOR3D_Y - layer as f32 * spacing;
+        for ix in 0..=side {
+            let tx = ix as f32 / side as f32;
+            let x = -FLOOR3D_HALF_EXTENT + tx * FLOOR3D_HALF_EXTENT * 2.0;
+            for iz in 0..=side {
+                let tz = iz as f32 / side as f32;
+                let z = -FLOOR3D_HALF_EXTENT + tz * FLOOR3D_HALF_EXTENT * 2.0;
+                points.push(Vector3::new(x, y, z));
+            }
         }
     }
 

@@ -9,6 +9,10 @@ Small browser experiments for SPH implementations.
 - [Salva 2D WASM benchmark](./site/samples/salva-benchmark/)
   - Adjustable from 100 to 10,000 particles in 100-particle increments.
   - Displays FPS and measured milliseconds per SPH step.
+- [Salva 3D + WebAssembly + Canvas dots](./site/samples/salva-3d-canvas/)
+  - 512 particles (8 × 8 × 8) simulated with Salva 3D.
+  - XYZ positions are perspective-projected and depth-sorted in plain Canvas 2D.
+  - Drag to orbit; wheel to zoom.
 - [Salva interactive obstacles](./site/samples/salva-interactive-obstacles/)
   - Selectable 1,000–5,000 particles.
   - Particle-only reset preserves the outer container and all user obstacles.
