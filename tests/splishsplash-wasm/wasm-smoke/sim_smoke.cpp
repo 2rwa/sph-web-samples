@@ -1005,7 +1005,7 @@ int main()
         if (!sph_scene_begin(0.025f, 4, 2))
             return 130;
         sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
-        sph_scene_set_timing(1, 1f, 0.005f, 0.001f);
+        sph_scene_set_timing(1, 1.0f, 0.005f, 0.001f);
         sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
         sph_scene_set_material(1000.0f, 5u);
         sph_scene_set_takahashi2015_viscosity(20.0f, 200u, 0.05f);
@@ -1052,7 +1052,7 @@ int main()
         if (!sph_scene_begin(0.025f, 4, 2))
             return 140;
         sph_scene_set_gravity(0.1f, -9.81f, 0.0f);
-        sph_scene_set_timing(1, 1f, 0.005f, 0.001f);
+        sph_scene_set_timing(1, 1.0f, 0.005f, 0.001f);
         sph_scene_set_dfsph(2u, 100u, 0.01f, 100u, 0.1f, 1);
         sph_scene_set_material(1000.0f, 6u);
         sph_scene_set_weiler2018_viscosity(5.0f, 5.0f, 200u, 0.05f);
