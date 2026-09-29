@@ -2,17 +2,17 @@
 
 Small browser experiments for SPH implementations.
 
-## Sample 01: Salva 2D + WebAssembly + Canvas
+## Samples
 
-- Physics: [Salva](https://github.com/dimforge/salva) 0.10.0
-- Build: Rust `wasm32-unknown-unknown` via `wasm-pack`
-- Display: plain HTML Canvas dots
-- Tests: native Rust behavior tests + generated WASM/page contract test
-- CI: GitHub Actions builds the WASM and deploys `site/` to GitHub Pages
+- [Salva 2D + WebAssembly + Canvas](./site/samples/salva-canvas/)
+  - Physics: [Salva](https://github.com/dimforge/salva) 0.10.0
+  - Build: Rust `wasm32-unknown-unknown` via `wasm-pack`
+  - Display: plain HTML Canvas dots
+  - Tests: native Rust behavior tests + generated WASM/page contract test
 
-The first sample intentionally keeps rendering simple so the browser/WASM boundary and SPH behavior are easy to inspect.
+GitHub Pages publishes `site/`. The top page is intentionally a simple text index; each experiment lives under `site/samples/`.
 
-### Local build
+## Local build
 
 ```bash
 cargo test
