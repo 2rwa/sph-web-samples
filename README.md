@@ -39,6 +39,11 @@ Small browser experiments for SPH implementations.
   - A normalize compute pass writes a 40×96×40 `r32float` 3D texture.
   - The same fixed-step + binary-refinement raymarch strategy extracts the liquid surface.
   - The upstream spherical obstacle is rendered analytically.
+- [Elasticity dual-density raymarch](./site/samples/salva-3d-webgpu-elasticity/)
+  - Reuses the two 864-particle official Elasticity fluids.
+  - Each elastic body owns an independent fixed-point atomic density buffer and 56×72×56 `r32float` texture.
+  - The raymarch pass tracks both iso-surfaces independently and colors them separately.
+  - This prevents the two elastic bodies from visually merging into one implicit density field.
 
 ## WebGL2 examples3d ports
 
