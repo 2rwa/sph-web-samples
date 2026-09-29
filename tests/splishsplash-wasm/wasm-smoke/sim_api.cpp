@@ -4,12 +4,19 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/FluidModel.h"
+#include "Utilities/Logger.h"
+#include "Utilities/Timing.h"
+#include "Utilities/Counting.h"
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
 using namespace SPH;
+
+INIT_LOGGING
+INIT_TIMING
+INIT_COUNTING
 
 namespace {
 Simulation* g_sim = nullptr;
