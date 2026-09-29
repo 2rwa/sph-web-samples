@@ -494,3 +494,178 @@ a Python animation script, so it is not the smallest next compatibility step.
 Read this file, inspect current main and Actions, then continue from the PBD
 Emscripten compile probe. Keep animated/kinematic boundaries distinct from true
 dynamic/PBD coupling in tests and documentation.
+
+
+## True dynamic PBD / browser coupling result
+
+The earlier "PBD coupling pending" notes above are now superseded.
+
+### Pinned PBD build
+
+SPlisHSPlasH 2.18.1 pins PositionBasedDynamics commit:
+
+```text
+10a70bc146a97873dc3c8fef372f5217e010542e
+```
+
+That exact revision now compiles under Emscripten 3.1.6 in the single-thread
+WASM probe. OpenMP-only calls in the pinned PBD source are patched to
+single-thread fallbacks for this build.
+
+### PBDRigidBody bridge
+
+Commit:
+
+- `884406545f00b47a8a6fdef979d1df591f8d2697` — minimal `PBDRigidBody` WASM bridge
+
+Reference result:
+
+```text
+SPLISHSPLASH_PBD_RIGIDBODY_WASM_OK
+dynamic=1
+mass=2
+dt=0.01
+forceY=-19.62
+vy=-0.0981
+y0=1
+y1=0.999019
+```
+
+### SPH -> Bender2019 -> PBD two-way force transfer
+
+Commit:
+
+- `55a9f5954c390b0b79b1238e02530fda0beb2319` — real SPH/Bender2019/PBD coupling probe
+
+The probe performs a real DFSPH step, reads the force and torque accumulated by
+`BoundaryModel_Bender2019`, forwards those through `PBDRigidBody`, then advances
+the PBD body.
+
+The deliberately extreme first proof used a 0.5 kg plate and therefore produced
+a huge displacement. It is retained as a strong force-transfer regression, not
+as a physically tuned demo.
+
+### Stable parameter sweep
+
+Commit:
+
+- `7790eb54e61d9deddd89898318e19d86a1cb7550` — box inertia and stable coupling sweep
+
+The dynamic box promotion now computes the principal inertia of a cuboid:
+
+```text
+Ix = m/12 * (sy^2 + sz^2)
+Iy = m/12 * (sx^2 + sz^2)
+Iz = m/12 * (sx^2 + sy^2)
+```
+
+All 12 tested mass / initial-fluid-velocity combinations stayed finite and
+inside the sweep's stability limits.
+
+Selected direct-impact browser default:
+
+```text
+mass=250 kg
+fluidVy=-0.5 m/s
+steps=120
+time=0.298 s
+displacementY=-0.0471434 m
+bodySpeed=0.159394 m/s
+maxBoundaryForce=14450.8 N
+```
+
+### Dedicated PBD browser build
+
+Commit:
+
+- `f16910852be5553bab6ea8c07d144d7986d704bf` — dedicated browser PBD coupling demo
+
+The normal scene-browser WASM remains separate. The PBD demo links
+PositionBasedDynamics only in:
+
+```text
+splishsplash_pbd_browser.wasm
+```
+
+Observed size:
+
+```text
+1435540 bytes
+```
+
+Browser page:
+
+```text
+https://2rwa.github.io/sph-web-samples/tests/splishsplash-pbd-browser/
+```
+
+Pages #133 validated the real browser path with Headless Chrome:
+
+```text
+CI SPlisHSPlasH PBD browser ok
+dy=-0.04714
+speed=0.15939
+maxForce=14450.8
+```
+
+### Gravity-driven fluid impact preset
+
+Commits:
+
+- `d948a569dda78f8a761a0b8aadda54539c0f3a5c` — gravity-impact parameter sweep
+- `5fa59e437fb27db4987b3f89319c939a7b17e957` — browser gravity-drop preset
+
+This experiment intentionally applies gravity to the SPH fluid while the
+manually integrated PBD body receives zero gravitational acceleration. It
+therefore represents a supported plate hit by gravity-driven water, rather than
+an unconstrained free-falling rigid body.
+
+All six tested masses from 100 kg through 5000 kg passed the stability criteria.
+The selected gravity-drop default is:
+
+```text
+mass=1000 kg
+fluid initial velocity=0 m/s
+fluid gravity=-9.81 m/s^2
+body gravity=0
+steps=160
+time=0.398 s
+displacementY=-0.0664937 m
+bodySpeed=0.442347 m/s
+maxBoundaryForce=4019.84 N
+```
+
+Pages #135 validates both presets in the same real browser module:
+
+```text
+CI SPlisHSPlasH PBD browser ok
+impactDy=-0.04714
+gravityDy=-0.06649
+gravityForce=4019.8
+```
+
+## Current PBD limitation
+
+The browser milestone proves real two-way force transfer, but it is still a
+minimal integration layer rather than the complete desktop
+`PBDBoundarySimulator/PBDWrapper` stack.
+
+Current limitations:
+
+- one promoted Bender2019 rigid body is the tested path
+- rigid-body integration currently uses PBD `TimeIntegration` directly
+- PBD collision constraints / joints / motors are not yet browser-wired
+- the gravity-drop preset keeps rigid-body gravity disabled deliberately
+- full upstream dynamic Scene JSON handling is still pending
+
+The next useful compatibility step is to replace the minimal manual rigid-body
+advance with an upstream-style PBD simulation timestep, then use
+`MotorScene.json` / `MotorScene2.json` as dynamic-scene targets.
+
+## Updated resume instruction
+
+Read this file and current main. Treat PBD Emscripten compilation, PBDRigidBody,
+Bender2019 force feedback, stable parameter sweeps, and the two-mode browser
+demo as completed milestones. Continue by moving the dynamic step closer to
+upstream `PBDWrapper::timeStep()` semantics before attempting motor/joint
+Scene JSON compatibility.
