@@ -3,13 +3,13 @@ set -euo pipefail
 
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$TEST_DIR/../.." && pwd)"
-WORK_ROOT="${SPLISHSPLASH_WASM_WORK_ROOT:-${RUNNER_TEMP:-/tmp}/splishsplash-wasm-probe}"
+WORK_ROOT="${SPLISHSPLASH_WASM_WORK_ROOT:-$REPO_ROOT/.cache/splishsplash-wasm-probe}"
 SRC_DIR="$WORK_ROOT/SPlisHSPlasH"
 BUILD_DIR="$WORK_ROOT/build"
 OUT_DIR="$TEST_DIR/out"
 SITE_VENDOR_DIR="$REPO_ROOT/site/vendor/splishsplash"
 
-rm -rf "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR"
+rm -rf "$OUT_DIR" "$SITE_VENDOR_DIR"
 mkdir -p "$WORK_ROOT" "$OUT_DIR" "$SITE_VENDOR_DIR"
 
 echo "== toolchain =="
@@ -18,21 +18,27 @@ emcmake cmake --version
 ninja --version
 node --version
 
-echo "== clone upstream =="
-git clone --depth 1 --branch 2.18.1 \
-  https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git \
-  "$SRC_DIR"
+echo "== prepare upstream checkout =="
+if [[ ! -d "$SRC_DIR/.git" ]]; then
+  git clone --depth 1 --branch 2.18.1 \
+    https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git \
+    "$SRC_DIR"
+else
+  echo "Reusing cached upstream checkout: $SRC_DIR"
+fi
 
 python3 "$TEST_DIR/prepare_emscripten.py" "$SRC_DIR"
 
 rm -rf "$SRC_DIR/WasmSmoke"
 cp -R "$TEST_DIR/wasm-smoke" "$SRC_DIR/WasmSmoke"
-cat >> "$SRC_DIR/CMakeLists.txt" <<'CMAKE_EOF'
+if ! grep -q 'add_subdirectory(WasmSmoke)' "$SRC_DIR/CMakeLists.txt"; then
+  cat >> "$SRC_DIR/CMakeLists.txt" <<'CMAKE_EOF'
 
 if (EMSCRIPTEN)
     add_subdirectory(WasmSmoke)
 endif()
 CMAKE_EOF
+fi
 
 echo "== configure =="
 emcmake cmake \
