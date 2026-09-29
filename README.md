@@ -20,6 +20,20 @@ Small browser experiments for SPH implementations.
   - User-created shapes become real Salva boundary particles in WASM.
   - Clear removes user obstacles while keeping the outer container.
 
+## Upstream examples2d ports
+
+The five examples currently registered by Salva's `examples2d/all_examples2.rs` are exposed as browser pages:
+
+- Basic
+- Custom forces
+- Elasticity
+- Layers
+- Surface tension
+
+The first web pass prioritizes Salva behavior and Canvas visualization. Rapier-coupled dynamic rigid bodies from upstream Basic/Layers are documented but not yet reproduced.
+
+See [OFFICIAL_EXAMPLES2D_PORTS.md](./OFFICIAL_EXAMPLES2D_PORTS.md).
+
 All samples use:
 
 - Physics: [Salva](https://github.com/dimforge/salva) 0.10.0
