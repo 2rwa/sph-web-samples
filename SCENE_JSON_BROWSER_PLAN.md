@@ -199,3 +199,36 @@ This is intentionally reusable for later vorticity, drag, elasticity and
 other non-pressure-force families: the JavaScript adapter preserves the
 original nested Scene JSON block, classifies known parameter types, and queues
 them before `sph_scene_commit()`.
+
+
+## General static mesh path
+
+The first non-UnitBox target is upstream `sphere.obj`.
+
+The WASM wrapper mirrors the important part of `SimulatorBase::initVolumeMap()`:
+
+```text
+MeshImport::importMesh
+  -> Discregrid::TriangleMesh
+  -> TriangleMeshDistance
+  -> CubicLagrangeDiscreteGrid SDF
+  -> GaussQuadrature volume field
+  -> serialized .cdm
+```
+
+Browser runtime loads the serialized map into MEMFS and creates
+`BoundaryModel_Bender2019` without regenerating it.
+
+The first full scene, `SurfaceTension_CoveredSphere_ZR2020.json`, is validated
+in Headless Chrome with 90,988 fluid particles.
+
+Generic mesh cache keys include:
+
+- upstream version
+- particle radius
+- scale
+- map resolution
+- mapInvert
+- mapThickness
+
+Static axis-angle rotation is the next bridge extension.

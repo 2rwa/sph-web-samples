@@ -28,10 +28,10 @@ Small browser experiments for SPH implementations.
 ## SPlisHSPlasH WebAssembly
 
 - [SPlisHSPlasH upstream Scene JSON browser](./site/tests/splishsplash-scene-browser/)
-  - One browser page / one WASM core rebuilds and switches among thirteen unedited upstream fixtures.
+  - One browser page / one WASM core rebuilds and switches among fourteen unedited upstream fixtures.
   - Solvers validated through the generic ABI: WCSPH, DFSPH, IISPH, ICSPH, and Projective Fluids.
   - The buckling fixtures additionally exercise Standard, Bender2017, Peer2015, Peer2016, Takahashi2015, and Weiler2018 viscosity configuration from Scene JSON.
-  - CI rebuilds all thirteen scenes sequentially in one Emscripten module without scene-specific C++ initialization.
+  - CI rebuilds all fourteen scenes sequentially in one Emscripten module without scene-specific C++ initialization.
 
 
 - [SPlisHSPlasH 2.18.1 WCSPH browser probe](./site/tests/splishsplash-wasm/)
@@ -232,3 +232,21 @@ Surface-tension options are forwarded by GenericParameters name instead of
 adding one fixed C ABI function per upstream option. Parameters that still
 exist in SPlisHSPlasH 2.18.1 are applied; stale source-only JSON keys remain
 preserved in the fixture and are reported by the browser adapter.
+
+
+### General static-mesh Bender2019
+
+The Bender2019 browser bridge now accepts a real upstream triangle mesh instead of
+being limited to analytic UnitBox boundaries.
+
+- Upstream OBJ loading: `MeshImport::importMesh()`
+- Signed distance: `Discregrid::TriangleMeshDistance`
+- Volume field: the same Gauss-quadrature strategy used by `SimulatorBase::initVolumeMap()`
+- First asset: upstream SPlisHSPlasH 2.18.1 `sphere.obj`
+- 20³ generated map: 3,107,048 bytes
+- First GitHub Actions generation: about 1.1–1.2 s
+- Cached load observed in Pages #119: about 3.24 ms
+- Generic mesh map keys include upstream version, particle radius, scale, resolution, inversion and thickness.
+- `SurfaceTension_CoveredSphere_ZR2020.json` runs as the first end-to-end mesh scene with 90,988 fluid particles.
+
+Pages #119 completed build, Headless Chrome Scene Browser CI, and Pages deployment successfully.

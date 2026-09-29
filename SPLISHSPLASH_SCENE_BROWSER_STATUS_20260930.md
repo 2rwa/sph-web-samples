@@ -84,8 +84,8 @@ Validated UnitBox maps:
 The expensive map-generation path also works in WASM; cached map loading is the
 normal browser path.
 
-Current limitation: the browser bridge recognizes static, unrotated
-`UnitBox.obj` only. General triangle meshes are the next boundary milestone.
+The first general triangle-mesh Bender2019 path is now implemented.
+The current restriction is static, unrotated rigid bodies; rotation and dynamic/PBD coupling remain separate milestones.
 
 ## Surface tension milestone
 
@@ -114,7 +114,7 @@ in upstream Scene JSON but absent from the 2.18.1 runtime parameter object remai
 preserved in the source fixture and can be reported rather than silently changing
 the fixture.
 
-## Current 13 validated upstream scenes
+## Current 14 validated upstream scenes
 
 ### Compressible / solver coverage
 
@@ -330,3 +330,77 @@ goal is the upstream triangle mesh and a reusable mesh-cache pipeline.
 Read this file, inspect the current main branch and latest Actions, then continue
 with general static-mesh Bender2019 support using
 `SurfaceTension_CoveredSphere_ZR2020.json` as the first end-to-end target.
+
+
+## General triangle-mesh Bender2019 result
+
+Implemented commits:
+
+- `b22e91f61a73d664b9093d2cfa21e6f562208023` — generic mesh Bender2019 WASM probe
+- `e53fa5844e7d08cc6bad0d904d5a36a4c6818245` — upstream CoveredSphere scene
+- `698915521901f4aa85081bac6bdf925c5d1752a6` — mesh boundary browser contract fix
+- `a1f91cf36b73010c24fe013db18feb782851ca7d` — versioned generic mesh map keys
+
+The probe reads the upstream OBJ file, scales the mesh in local space, creates
+a `Discregrid::TriangleMeshDistance`, constructs the Bender volume field and
+serializes the resulting `.cdm`.
+
+Reference first-generation result:
+
+```text
+SPLISHSPLASH_MESH_BENDER_WASM_OK
+particles=4851
+boundaryModels=1
+boundaryMethod=2
+mesh=sphere.obj
+mapResolution=20x20x20
+mapSource=generated
+mapMs=1104.35
+steps=1
+minY=1.03999
+time=0.001
+```
+
+The versioned map key is:
+
+```text
+sphere-v2p18p1-pr0p02-s1x1x1-r20x20x20-i0-t0.cdm
+```
+
+Map size:
+
+```text
+3107048 bytes
+```
+
+Probe #42 regenerated the versioned key successfully (about 1.22 s).
+Pages #119 then loaded the cached map in about 3.24 ms and reported:
+
+```text
+SPlisHSPlasH scene browser CI status: CI SPlisHSPlasH scene browser ok
+```
+
+### Scene 14
+
+`SurfaceTension_CoveredSphere_ZR2020.json`
+
+- DFSPH
+- Zorilla/Ritter 2020 surface tension
+- 90,988 fluid particles in the current browser block sampler
+- upstream `sphere.obj`
+- static native Bender2019 boundary
+- 20×20×20 map
+- mapInvert=false
+- mapThickness=0
+- Headless Chrome one-step regression passed in Pages #119
+
+## Next boundary step
+
+Static rotation is the next small compatibility extension.
+
+The Bender map remains in rigid-body local space, so rotation should not require
+regenerating the map. The wrapper only needs to carry Scene JSON
+`rotationAxis` / `rotationAngle` through to `StaticRigidBody` as a quaternion.
+
+A useful upstream regression candidate is `GridModel_Bender2019.json`, whose
+static UnitBox uses a nonzero rotation angle.
