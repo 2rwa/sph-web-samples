@@ -21,7 +21,7 @@ int main()
 
     PBD::Simulation* simulation = PBD::Simulation::getCurrent();
     simulation->setModel(&model);
-    const Vector3r gravity = Vector3r::Zero();
+    Vector3r gravity = Vector3r::Zero();
     simulation->setVecValue<Real>(PBD::Simulation::GRAVITATION, &gravity[0]);
     PBD::TimeManager::getCurrent()->setTime(static_cast<Real>(0.0));
     PBD::TimeManager::getCurrent()->setTimeStepSize(dt);
